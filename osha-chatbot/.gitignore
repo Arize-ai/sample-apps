@@ -1,0 +1,6 @@
+.venv/
+.env
+test_bedrock.ipynb
+testing_experiment.ipynb.venv/
+storage/
+AWSCLIV2.pkg
