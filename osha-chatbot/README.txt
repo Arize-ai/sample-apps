@@ -1,4 +1,4 @@
-# Verisk OSHA & Risk Assessment Assistant
+# OSHA & Risk Assessment Assistant
 
 An intelligent assistant application that handles OSHA-related queries and business risk assessments using LLM-powered classification and response generation. The application leverages AWS Bedrock for LLM capabilities and integrates with Arize for experiment tracking and monitoring.
 
