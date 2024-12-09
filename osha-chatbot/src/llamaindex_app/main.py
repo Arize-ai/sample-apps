@@ -135,7 +135,7 @@ def main():
             model=model,
         )
 
-        print("\nWelcome to the Verisk OSHA + Business Risk Assessment Expert App!")
+        print("\nWelcome to the OSHA + Business Risk Assessment Expert App!")
 
         while True:
             should_continue = handle_session(query_engine, classifier, tracer)
