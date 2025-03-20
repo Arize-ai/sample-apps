@@ -4,8 +4,10 @@ from enum import Enum
 from typing import Optional
 
 
-class BedrockModels(str, Enum):
-    CLAUDE = "anthropic.claude-3-haiku-20240307-v1:0"
+class AzureOpenAIModels(str, Enum):
+    GPT_4 = "gpt-4"
+    GPT_4_TURBO = "gpt-4-turbo"
+    GPT_35_TURBO = "gpt-35-turbo"
 
 
 TEMPLATE_VERSION = "1.0.0"
@@ -46,12 +48,12 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 20
     COLLECTOR_ENDPOINT: str = "https://otlp.arize.com/v1"
 
-    # AWS/Bedrock settings
-    AWS_ACCESS_KEY_ID: Optional[str] = None
-    AWS_SECRET_ACCESS_KEY: Optional[str] = None
-    AWS_SESSION_TOKEN: Optional[str] = None
-    MODEL: str = BedrockModels.CLAUDE.value
-    AWS_REGION: str = "us-east-1"
+    # Azure OpenAI settings
+    AZURE_OPENAI_API_KEY: Optional[str] = None  # Optional for VPN authentication
+    AZURE_OPENAI_ENDPOINT: str  # Required
+    AZURE_OPENAI_API_VERSION: str = "2023-12-01-preview"
+    AZURE_OPENAI_DEPLOYMENT: str  # Required
+    AZURE_OPENAI_MODEL: str = AzureOpenAIModels.GPT_4_TURBO.value
 
     # Arize settings
     ARIZE_SPACE_ID: str
