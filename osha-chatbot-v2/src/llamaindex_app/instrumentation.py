@@ -7,7 +7,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from phoenix.config import get_env_host, get_env_port
 from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
-from openinference.instrumentation.bedrock import BedrockInstrumentor
+from openinference.instrumentation.openai import OpenAIInstrumentor
 import logging
 from dotenv import load_dotenv
 
@@ -36,7 +36,7 @@ def setup_instrumentation():
             tracer_provider=tracer_provider, propagate_context=True
         )
 
-        BedrockInstrumentor().instrument(tracer_provider=tracer_provider)
+        OpenAIInstrumentor().instrument(tracer_provider=tracer_provider)
 
         logger.info("Instrumentation setup complete with Phoenix configuration")
         return tracer_provider

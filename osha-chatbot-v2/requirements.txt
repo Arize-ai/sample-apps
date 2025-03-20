@@ -13,3 +13,4 @@ boto3>=1.28.0
 botocore>=1.31.0
 arize = 7.29.2
 editdistance #this is for experiments
+openai>=1.12.0  # Azure OpenAI SDK

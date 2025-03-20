@@ -1,96 +1,98 @@
-# OSHA & Risk Assessment Assistant
+# Installation and Setup Guide for Azure OpenAI Integration
 
-An intelligent assistant application that handles OSHA-related queries and business risk assessments using LLM-powered classification and response generation. The application leverages AWS Bedrock for LLM capabilities and integrates with Arize for experiment tracking and monitoring.
+## Requirements
 
-## Features
+- Python 3.8+
+- Access to Azure OpenAI via VPN or direct API key
+- Required Azure OpenAI deployment
 
-- Query classification between OSHA regulations and risk assessment queries
-- RAG (Retrieval Augmented Generation) for OSHA-related questions
-- Risk scoring tools for business risk assessment
-- Arize + OpenInference instrumentation for monitoring and tracking of all relevant spans
-- Integration with Arize for experiment management and evaluation
+## Step 1: Install Required Packages
 
-## Prerequisites
-
-- Python 3.11+
-- AWS credentials with Bedrock access
-- Arize account and API credentials
-
-## Installation
-
-1. Clone the repository
-2. Create and activate a virtual environment:
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
+# Install core dependencies
+pip install openai~=1.12.0 azure-identity
+
+# Install LlamaIndex dependencies
+pip install llama-index-llms-azure-openai llama-index-core
 ```
 
-## Environment Setup
+## Step 2: Configure Environment Variables
 
-Create a `.env` file in the root directory with the following variables:
+Create a `.env` file in your project root with the following settings:
 
-```env
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-AWS_SESSION_TOKEN=your_aws_session_token
-AWS_REGION=your_aws_region
-MODEL=Bedrock Model
-ARIZE_API_KEY=your_arize_api_key
-ARIZE_DEVELOPER_KEY=your_arize_developer_key
-ARIZE_SPACE_ID=your_arize_space_id
+```ini
+# Azure OpenAI Configuration - Required
+AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com/
+AZURE_OPENAI_DEPLOYMENT=your_deployment_name
+AZURE_OPENAI_API_VERSION=2023-12-01-preview
+AZURE_OPENAI_MODEL=gpt-4-turbo
+
+# Optional: Only needed if not using VPN authentication
+# AZURE_OPENAI_API_KEY=your_api_key_here
+
+# Other required settings for your application
+ARIZE_SPACE_ID=your_space_id
+ARIZE_API_KEY=your_api_key
 ARIZE_MODEL_ID=your_model_id
 ```
 
-## Project Structure
+## Step 3: Test Azure OpenAI Connection
 
-- `main.py`: Application entry point and session management
-- `classifier.py`: Query classification and response generation logic
-- `instrumentation.py`: OpenTelemetry setup and configuration
-- `requirements.txt`: Project dependencies
-- `arize_testing_experiment.ipynb`: Notebook for running experiments with Arize, this is currently configured 
+Create a small test script to verify the connection:
 
-## Usage
+```python
+from openai import AzureOpenAI
+import os
+from dotenv import load_dotenv
 
-To run the application:
+# Load environment variables
+load_dotenv()
+
+try:
+    # Initialize client (VPN authentication)
+    client = AzureOpenAI(
+        azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+        api_version=os.environ["AZURE_OPENAI_API_VERSION"]
+    )
+
+    # Test a simple call
+    response = client.chat.completions.create(
+        deployment_id=os.environ["AZURE_OPENAI_DEPLOYMENT"],
+        messages=[{"role": "user", "content": "Hello, are you working?"}],
+        max_tokens=10
+    )
+
+    print("Response:", response.choices[0].message.content)
+    print("Connection successful!")
+except Exception as e:
+    print(f"Error connecting to Azure OpenAI: {str(e)}")
+```
+
+## Step 4: Run the Application
+
+Once your environment is configured, run your application:
 
 ```bash
 python -m src.llamaindex_app.main
 ```
 
-The application will start an interactive session where you can:
-- Ask OSHA-related questions
-- Request risk assessments; this is intended to mock a logged in user so it will present a "profile" that it used to provide a risk score.
-- Type 'end' to conclude the current session
-- Type 'quit' to exit the application
+## Troubleshooting
 
-## Experimentation
+1. **VPN Authentication Issues**
+   - Ensure you're connected to the correct VPN
+   - Check that you have permission to access the Azure OpenAI resource
+   - Try adding an explicit API key temporarily to isolate the issue
 
-To run experiments and evaluate model performance:
+2. **Missing Environment Variables**
+   - Double-check that all required environment variables are set
+   - Verify the `.env` file is in the correct location
+   - Make sure you're using `python-dotenv` to load the variables
 
-1. Open `arize_testing_experiment.ipynb` in Jupyter
-2. Ensure your environment variables are set
-3. Run the notebook cells to execute experiments and view results
+3. **Module Not Found Errors**
+   - Verify all required packages are installed
+   - Check your Python path and virtual environment
 
-## Monitoring
-
-The application is instrumented with OpenTelemetry and sends telemetry data to Arize. You can monitor:
-- Query classification performance
-- Response generation quality
-- Error rates and types
-- System performance metrics
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## License
-
-[Add your license information here]
+4. **API Errors**
+   - Check the deployment name is correct
+   - Verify the endpoint URL is correct
+   - Ensure the API version is supported
