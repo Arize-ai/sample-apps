@@ -20,7 +20,7 @@ def setup_instrumentation():
 
         # Phoenix Configuration
         resource = Resource(
-            attributes={ResourceAttributes.PROJECT_NAME: "verisk_assistant"}
+            attributes={ResourceAttributes.PROJECT_NAME: "10k-chatbot"}
         )
         tracer_provider = TracerProvider(resource=resource)
         trace.set_tracer_provider(tracer_provider)
@@ -98,7 +98,7 @@ def setup_instrumentation():
 #             tracer_provider=tracer_provider, propagate_context=True
 #         )
 
-#         BedrockInstrumentor().instrument(tracer_provider=tracer_provider)
+#         OpenAIInstrumentor().instrument(tracer_provider=tracer_provider)
 
 #         logger.info("Instrumentation setup complete with configurations")
 #         return tracer_provider
