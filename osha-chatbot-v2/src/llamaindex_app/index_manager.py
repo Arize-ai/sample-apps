@@ -64,9 +64,10 @@ class IndexManager:
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
     )
     def load_or_create_index(self):
-        kb_file = self.storage_path / "osha100.json"
+        #kb_file = self.storage_path / "osha100.json"
+        index_exists = self.storage_path.exists() and any(self.storage_path.iterdir())
 
-        if kb_file.exists():
+        if index_exists:
             logger.info("Loading existing index from storage...")
             storage_context = StorageContext.from_defaults(
                 persist_dir=str(self.storage_path)
@@ -96,74 +97,3 @@ class IndexManager:
     def get_query_engine(self):
         retriever = self.index.as_retriever(similarity_top_k=3)
         return QueryEngine(retriever=retriever)
-
-# from pathlib import Path
-# import logging
-# from llama_index.core import (
-#     SimpleDirectoryReader,
-#     VectorStoreIndex,
-#     StorageContext,
-#     load_index_from_storage,
-#     Settings as LlamaSettings,
-# )
-# from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-# from phoenix.trace import suppress_tracing
-# from tenacity import retry, stop_after_attempt, wait_exponential
-# from .config import Settings
-
-# logger = logging.getLogger(__name__)
-
-
-# class QueryEngine:
-#     def __init__(self, retriever):
-#         self.retriever = retriever
-
-#     def retrieve(self, query: str):
-#         return self.retriever.retrieve(query)
-
-
-# class IndexManager:
-#     def __init__(self, openai_client=None):
-#         self.settings = Settings()
-#         self.openai_client = openai_client
-#         with suppress_tracing():
-#             self._configure_llama_settings()
-#             self.storage_path = Path(self.settings.STORAGE_DIR)
-#             self.index = self.load_or_create_index()
-
-#     def _configure_llama_settings(self):
-#         LlamaSettings.embed_model = HuggingFaceEmbedding(
-#             model_name="BAAI/bge-small-en-v1.5"
-#         )
-#         LlamaSettings.chunk_size = self.settings.CHUNK_SIZE
-#         LlamaSettings.chunk_overlap = self.settings.CHUNK_OVERLAP
-
-#     @retry(
-#         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
-#     )
-#     def load_or_create_index(self):
-#         kb_file = self.storage_path / "osha100.json"
-
-#         if kb_file.exists():
-#             storage_context = StorageContext.from_defaults(
-#                 persist_dir=str(self.storage_path)
-#             )
-#             return load_index_from_storage(storage_context)
-
-#         if not self.storage_path.exists():
-#             self.storage_path.mkdir(parents=True, exist_ok=True)
-
-#         try:
-#             documents = SimpleDirectoryReader(
-#                 input_dir=self.settings.DATA_PATH
-#             ).load_data()
-#             index = VectorStoreIndex.from_documents(documents, settings=LlamaSettings)
-#             index.storage_context.persist(persist_dir=str(self.storage_path))
-#             return index
-#         except Exception as e:
-#             logger.error(f"Error creating index: {str(e)}")
-#             raise
-
-#     def get_query_engine(self):
-#         retriever = self.index.as_retriever(similarity_top_k=3)
-#         return QueryEngine(retriever=retriever)
