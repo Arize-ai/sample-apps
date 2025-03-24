@@ -12,22 +12,22 @@ class AzureOpenAIModels(str, Enum):
 
 TEMPLATE_VERSION = "1.0.0"
 
-CLASSIFICATION_PROMPT = """You are a query classifier for OSHA and risk assessment application. 
+CLASSIFICATION_PROMPT = """You are a query classifier for Assurant's 10-K reports and risk assessment application. 
 Analyze the following query and respond with a JSON object containing two fields:
-1. 'category': Must be exactly one of: "OSHA", "risk_assessment", or "out_of_scope"
+1. 'category': Must be exactly one of: "assurant_10k", "risk_assessment", or "out_of_scope"
 2. 'confidence': A number between 0 and 1 indicating your confidence in the classification
 
 Guidelines:
-- OSHA: Questions about compliance with OSHA regulations, guidelines, standards and compliance
-- risk_assessment: Queries about business risk scoring, risk profiles, historical trends, risk analysis
-- out_of_scope: Questions unrelated to OSHA or risk assessment
+- assurant_10k: Questions about information in Assurant's recent 10-K reports, including financial data, business operations, market position, corporate governance, or risk factors
+- risk_assessment: Queries about business risk scoring, risk profiles, historical trends, or comparative risk analysis related to Assurant or the insurance industry
+- out_of_scope: Questions unrelated to Assurant's 10-K reports or risk assessment
 
 Query: {query}
 
 Respond with ONLY a valid JSON object in this exact format:
 {{"category": "<category>", "confidence": <confidence>}}"""
 
-RAG_PROMPT = """You are an OSHA regulations expert. Provide a clear, accurate answer based on the provided contexts.
+RAG_PROMPT = """You are a financial analyst specializing in insurance companies with expert knowledge of Assurant's recent 10-K reports. Provide a clear, accurate answer based on the provided contexts from Assurant's 10-K filings.
 
 Context 1: {context_1}
 
@@ -37,12 +37,12 @@ Context 3: {context_3}
 
 Question: {query}
 
-Cite specific OSHA standards when applicable."""
+When applicable, cite specific sections, page numbers, or fiscal years from the 10-K reports. Compare data across the two most recent reports when relevant to show trends or changes. Present financial data clearly and accurately."""
 
 
 class Settings(BaseSettings):
     # Common settings
-    DATA_PATH: str = str(Path("data").absolute())
+    DATA_PATH: str = str(Path(__file__).parent.parent / "data")
     STORAGE_DIR: str = str(Path("storage").absolute())
     CHUNK_SIZE: int = 1024
     CHUNK_OVERLAP: int = 20
@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     API_RETRY_DELAY: int = 1
 
     # Phoenix settings
-    phoenix_project_name: str = "verisk_assistant"
+    phoenix_project_name: str = "10k-chatbot"
 
     class Config:
         env_file = ".env"

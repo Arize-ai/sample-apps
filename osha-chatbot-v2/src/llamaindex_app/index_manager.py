@@ -64,32 +64,60 @@ class IndexManager:
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
     )
     def load_or_create_index(self):
-        #kb_file = self.storage_path / "osha100.json"
-        index_exists = self.storage_path.exists() and any(self.storage_path.iterdir())
-
-        if index_exists:
-            logger.info("Loading existing index from storage...")
-            storage_context = StorageContext.from_defaults(
-                persist_dir=str(self.storage_path)
-            )
-            return load_index_from_storage(storage_context)
-
+    # Always recreate the index, don't check if it exists
         if not self.storage_path.exists():
             self.storage_path.mkdir(parents=True, exist_ok=True)
-
+        elif any(self.storage_path.iterdir()):
+            # Clear existing index files if they exist
+            logger.info("Removing existing index...")
+            for file in self.storage_path.iterdir():
+                file.unlink()
+        
         try:
-            logger.info(f"Creating new index from documents in {self.settings.DATA_PATH}...")
-            documents = SimpleDirectoryReader(
-                input_dir=self.settings.DATA_PATH
-            ).load_data()
+            logger.info("Creating new index from specific PDF files...")
             
-            logger.info(f"Loaded {len(documents)} documents, creating index...")
-            index = VectorStoreIndex.from_documents(documents, settings=LlamaSettings)
+            # Determine the correct data path
+            # This path should point to the root 'data' folder, not 'src/data'
+            project_root = Path(__file__).parent.parent.parent  # Go up from src/llamaindex_app to the project root
+            data_path = project_root / "data"
             
-            logger.info("Persisting index to storage...")
-            index.storage_context.persist(persist_dir=str(self.storage_path))
+            logger.info(f"Using data path: {data_path}")
             
-            return index
+            # Specify exact filenames
+            filenames = ["AIZ 10K - 2023.pdf", "AIZ 10K - 2024.pdf"]
+            
+            # Check if files exist
+            pdf_files = []
+            for filename in filenames:
+                file_path = data_path / filename
+                logger.info(f"Checking for file: {file_path}")
+                if file_path.exists():
+                    pdf_files.append(str(file_path))
+                    logger.info(f"File found: {file_path}")
+                else:
+                    logger.error(f"File not found: {file_path}")
+                    # List files in the data directory to help debug
+                    if data_path.exists():
+                        logger.info(f"Files in data directory: {[f.name for f in data_path.iterdir() if f.is_file()]}")
+                    else:
+                        logger.error(f"Data directory does not exist: {data_path}")
+                    raise FileNotFoundError(f"File not found: {file_path}")
+            
+            # Only proceed if we found both files
+            if len(pdf_files) == 2:
+                documents = SimpleDirectoryReader(
+                    input_files=pdf_files
+                ).load_data()
+                
+                logger.info(f"Loaded {len(documents)} documents, creating index...")
+                index = VectorStoreIndex.from_documents(documents, settings=LlamaSettings)
+                
+                logger.info("Persisting index to storage...")
+                index.storage_context.persist(persist_dir=str(self.storage_path))
+                
+                return index
+            else:
+                raise ValueError(f"Expected 2 PDF files, but found {len(pdf_files)}")
         except Exception as e:
             logger.error(f"Error creating index: {str(e)}")
             raise
