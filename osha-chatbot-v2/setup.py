@@ -5,7 +5,7 @@ with open('requirements.txt') as f:
     requirements = f.read().splitlines()
 
 setup(
-    name="osha-chatbot",
+    name="assurant-10k-chatbot",
     version="0.2.0",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
