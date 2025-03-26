@@ -10,10 +10,8 @@
 
 ```bash
 # Install core dependencies
-pip install openai~=1.12.0 azure-identity
+pip install -r requirements.txt
 
-# Install LlamaIndex dependencies
-pip install llama-index-llms-azure-openai llama-index-core
 ```
 
 ## Step 2: Configure Environment Variables
@@ -24,11 +22,9 @@ Create a `.env` file in your project root with the following settings:
 # Azure OpenAI Configuration - Required
 AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com/
 AZURE_OPENAI_DEPLOYMENT=your_deployment_name
-AZURE_OPENAI_API_VERSION=2023-12-01-preview
+AZURE_OPENAI_API_VERSION=your_api_version
 AZURE_OPENAI_MODEL=gpt-4-turbo
-
-# Optional: Only needed if not using VPN authentication
-# AZURE_OPENAI_API_KEY=your_api_key_here
+AZURE_OPENAI_API_KEY=your_api_key_here
 
 # Other required settings for your application
 ARIZE_SPACE_ID=your_space_id
