@@ -46,7 +46,7 @@
 #         raise
 
 
-# Use this to send to Arize
+#Use this to send to Arize
 from opentelemetry.trace import set_tracer_provider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
