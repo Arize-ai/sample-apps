@@ -9,6 +9,13 @@ from typing import Tuple, Optional
 from opentelemetry.trace.status import Status, StatusCode
 from openinference.semconv.trace import SpanAttributes
 from llama_index.core import Response
+#guards
+from .config import (
+    validate_query_for_jailbreak, 
+    validate_query_for_toxic_language
+)
+from guardrails import Guard
+from guardrails.hub import DetectJailbreak, ToxicLanguage
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,7 +24,41 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-
+def validate_interaction(query: str) -> Optional[str]:
+    """
+    Validate the user query for potential issues before processing
+    
+    :param query: Input query to validate
+    :return: Error message if validation fails, None if query is valid
+    """
+    try:
+        # Jailbreak detection
+        jailbreak_guard = Guard().use(DetectJailbreak)
+        jailbreak_guard.validate(query)
+        
+        # Toxic language detection
+        toxic_guard = Guard().use(
+            ToxicLanguage, 
+            threshold=0.5,  # Adjust sensitivity as needed
+            validation_method="sentence", 
+            on_fail="exception"
+        )
+        toxic_guard.validate(query)
+        
+        # If both validations pass, return None (no error)
+        return None
+    
+    except Exception as e:
+        # Log the specific validation error
+        logger.warning(f"Interaction validation failed: {str(e)}")
+        
+        # Return a generic error message
+        if "jailbreak" in str(e).lower():
+            return "Potential jailbreak attempt detected"
+        elif "toxic" in str(e).lower():
+            return "Toxic language is not allowed"
+        else:
+            return "Input validation failed"
 
 def process_interaction(
     query_engine: any,
@@ -26,6 +67,12 @@ def process_interaction(
     query: str,
     session_id: str,
 ) -> Tuple[Optional[Response], Optional[str]]:
+    # Validate the interaction first
+    validation_error = validate_interaction(query)
+    if validation_error:
+        return None, validation_error
+
+    # Continue with existing processing logic if validation passes
     with tracer.start_as_current_span(
         name="user_interaction",
         attributes={

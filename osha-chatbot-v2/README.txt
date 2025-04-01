@@ -32,7 +32,17 @@ ARIZE_API_KEY=your_api_key
 ARIZE_MODEL_ID=your_model_id
 ```
 
-## Step 3: Test Azure OpenAI Connection
+## Step 3: Install Guardrails AI
+Make sure you are not on a VPN, this creates issue with the Hub.
+```bash
+#This gets guardrails setup including setting your API key
+guardrails configure
+
+guardrails hub install hub://guardrails/detect_jailbreak
+
+guardrails hub install hub://guardrails/toxic_language
+
+## Step 4: Test Azure OpenAI Connection
 
 Create a small test script to verify the connection:
 
@@ -64,7 +74,7 @@ except Exception as e:
     print(f"Error connecting to Azure OpenAI: {str(e)}")
 ```
 
-## Step 4: Run the Application
+## Step 5: Run the Application
 
 Once your environment is configured, run your application:
 
