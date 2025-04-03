@@ -3,8 +3,8 @@ from typing import Tuple
 import logging
 from llama_index.core import Response
 from pydantic import BaseModel, Field
-from .tools import RiskScoringTools
-from .config import Settings, CLASSIFICATION_PROMPT, RAG_PROMPT, TEMPLATE_VERSION
+from src.llamaindex_app.tools import RiskScoringTools
+from src.llamaindex_app.config import Settings, CLASSIFICATION_PROMPT, RAG_PROMPT, TEMPLATE_VERSION
 from opentelemetry.trace import Status, StatusCode
 from opentelemetry import trace
 from openinference.semconv.trace import SpanAttributes

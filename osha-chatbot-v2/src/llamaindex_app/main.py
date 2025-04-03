@@ -1,7 +1,7 @@
-from .index_manager import IndexManager
-from .instrumentation import setup_instrumentation
-from .classifier import QueryClassifier, QueryCategory
-from .config import Settings
+from src.llamaindex_app.index_manager import IndexManager
+from src.llamaindex_app.instrumentation import setup_instrumentation
+from src.llamaindex_app.classifier import QueryClassifier, QueryCategory
+from src.llamaindex_app.config import Settings
 import logging
 import sys
 import uuid
@@ -9,8 +9,8 @@ from typing import Tuple, Optional
 from opentelemetry.trace.status import Status, StatusCode
 from openinference.semconv.trace import SpanAttributes
 from llama_index.core import Response
-#guards
-from .config import (
+# guards
+from src.llamaindex_app.config import (
     validate_query_for_jailbreak, 
     validate_query_for_toxic_language
 )
@@ -156,7 +156,7 @@ def init_azure_openai_client():
     """Initialize the Azure OpenAI client with DefaultAzureCredential."""
     from openai import AzureOpenAI
     from azure.identity import DefaultAzureCredential
-    from .config import Settings
+    from src.llamaindex_app.config import Settings
     
     settings = Settings()
     
