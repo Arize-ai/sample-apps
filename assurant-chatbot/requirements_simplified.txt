@@ -1,0 +1,45 @@
+# Core LlamaIndex dependencies
+llama-index==0.12.25
+llama-index-core==0.12.25
+llama-index-llms-azure-openai==0.3.2
+llama-index-embeddings-azure-openai==0.3.1
+llama-index-embeddings-huggingface==0.4.0
+llama-index-readers-file==0.4.6
+openai==1.68.0
+
+# Azure integration
+azure-identity==1.21.0
+azure-core==1.32.0
+
+# Environment and configuration
+python-dotenv==1.0.1
+pydantic==2.10.6
+pydantic-settings==2.8.1
+
+# Safety and validation
+guardrails-ai==0.6.5
+
+# Error handling and retries
+tenacity==9.0.0
+
+# Instrumentation and monitoring
+arize-phoenix==8.15.0
+arize-phoenix-otel==0.8.0
+openinference-instrumentation-llama-index==3.3.3
+openinference-instrumentation-openai==0.1.22
+opentelemetry-sdk==1.31.1
+opentelemetry-exporter-otlp-proto-http==1.31.1
+opentelemetry-exporter-otlp-proto-grpc==1.31.1
+
+# Web API (if needed)
+fastapi==0.115.11
+uvicorn==0.34.0
+python-multipart==0.0.20
+
+# Data processing
+pandas==2.2.3
+numpy==2.2.4
+
+# Document processing
+pypdf==5.4.0
+
