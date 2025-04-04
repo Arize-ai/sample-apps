@@ -9,7 +9,7 @@
 
 ```bash
 # Install core dependencies
-pip install -r requirements_simplified.txt
+pip install -r requirements.txt
 
 ```
 
