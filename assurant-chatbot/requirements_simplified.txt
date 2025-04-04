@@ -1,15 +1,14 @@
 # Core LlamaIndex dependencies
 llama-index==0.12.25
 llama-index-core==0.12.25
-llama-index-llms-azure-openai==0.3.2
-llama-index-embeddings-azure-openai==0.3.1
+llama-index-llms-openai==0.3.30
+llama-index-embeddings-openai==0.3.1
 llama-index-embeddings-huggingface==0.4.0
 llama-index-readers-file==0.4.6
 openai==1.68.0
 
-# Azure integration
-azure-identity==1.21.0
-azure-core==1.32.0
+# OpenAI
+openai==1.68.0
 
 # Environment and configuration
 python-dotenv==1.0.1
