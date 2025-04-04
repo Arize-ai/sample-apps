@@ -8,7 +8,7 @@ llama-index-readers-file==0.4.6
 openai==1.68.0
 
 # OpenAI
-openai==1.68.0
+openai>=1.68.0
 
 # Environment and configuration
 python-dotenv==1.0.1
@@ -44,4 +44,4 @@ streamlit>=1.32.0
 watchdog>=3.0.0
 
 #Guardrails
-guardrails-ai
+guardrails-ai==0.6.5
