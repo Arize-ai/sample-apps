@@ -4,10 +4,10 @@ from enum import Enum
 from typing import Optional
 
 
-class AzureOpenAIModels(str, Enum):
+class OpenAIModels(str, Enum):
     GPT_4 = "gpt-4"
     GPT_4_TURBO = "gpt-4-turbo"
-    GPT_35_TURBO = "gpt-35-turbo"
+    GPT_35_TURBO = "gpt-3.5-turbo"
 
 
 TEMPLATE_VERSION = "1.0.0"
@@ -48,12 +48,11 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 20
     COLLECTOR_ENDPOINT: str = "https://otlp.arize.com/v1"
 
-    # Azure OpenAI settings
-    AZURE_OPENAI_API_KEY: Optional[str] = None  # Optional for VPN authentication
-    AZURE_OPENAI_ENDPOINT: str  # Required
-    AZURE_OPENAI_API_VERSION: str = "2023-12-01-preview"
-    AZURE_OPENAI_DEPLOYMENT: str  # Required
-    AZURE_OPENAI_MODEL: str = AzureOpenAIModels.GPT_4_TURBO.value
+    # OpenAI settings
+    OPENAI_API_KEY: str  # Required
+    OPENAI_ORG_ID: Optional[str] = None  # Optional
+    OPENAI_MODEL: str = OpenAIModels.GPT_4_TURBO.value
+    OPENAI_BASE_URL: Optional[str] = None  # Optional, default is https://api.openai.com/v1
 
     # Arize settings
     ARIZE_SPACE_ID: str

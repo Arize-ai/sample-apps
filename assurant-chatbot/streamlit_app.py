@@ -31,7 +31,7 @@ logger.info(f"Added project root to path: {project_root}")
 # Import the necessary modules using direct imports
 try:
     # Use absolute imports based on the project structure
-    from src.llamaindex_app.main import init_azure_openai_client, setup_instrumentation, process_interaction
+    from src.llamaindex_app.main import init_openai_client, setup_instrumentation, process_interaction
     from src.llamaindex_app.classifier import QueryClassifier
     from src.llamaindex_app.index_manager import IndexManager
     from src.llamaindex_app.config import Settings
@@ -56,17 +56,15 @@ def init_app():
                 st.session_state["tracer"] = tracer_provider.get_tracer("llamaindex_app")
                 logger.info("Instrumentation setup complete")
 
-            # (2) azure client
-            with st.spinner("Initializing Azure OpenAI client..."):
-                azure_client = init_azure_openai_client()
-                st.session_state["azure_client"] = azure_client
-                # Store deployment name separately
-                st.session_state["azure_deployment"] = settings.AZURE_OPENAI_DEPLOYMENT
-                logger.info("Azure OpenAI client initialized")
+            # (2) OpenAI client
+            with st.spinner("Initializing OpenAI client..."):
+                openai_client = init_openai_client()
+                st.session_state["openai_client"] = openai_client
+                logger.info("OpenAI client initialized")
 
             # (3) index manager & query engine
             with st.spinner("Loading index and query engine..."):
-                index_manager = IndexManager(openai_client=azure_client)
+                index_manager = IndexManager(openai_client=openai_client)
                 query_engine = index_manager.get_query_engine()
                 st.session_state["query_engine"] = query_engine
                 logger.info("Index and query engine loaded")
@@ -75,8 +73,7 @@ def init_app():
             with st.spinner("Initializing query classifier..."):
                 classifier = QueryClassifier(
                     query_engine=query_engine,
-                    openai_client=azure_client,
-                    deployment=st.session_state["azure_deployment"]  # Use the stored deployment name
+                    openai_client=openai_client
                 )
                 st.session_state["classifier"] = classifier
                 logger.info("Query classifier initialized")
@@ -124,7 +121,7 @@ def main():
             safe_vars = {
                 k: (v if not any(secret in k.lower() for secret in ["key", "secret", "password", "token"]) else "****") 
                 for k, v in os.environ.items()
-                if k.startswith(("AZURE_", "OPENAI_", "LLAMAINDEX_"))
+                if k.startswith(("OPENAI_", "LLAMAINDEX_"))
             }
             for k, v in safe_vars.items():
                 st.write(f"- {k}: {v}")
@@ -133,9 +130,10 @@ def main():
             if "settings" in st.session_state:
                 settings = st.session_state["settings"]
                 st.write("App Settings:")
-                st.write(f"- Azure Deployment: {settings.AZURE_OPENAI_DEPLOYMENT}")
-                st.write(f"- Azure Endpoint: {settings.AZURE_OPENAI_ENDPOINT if settings.AZURE_OPENAI_ENDPOINT else 'Not set'}")
-                st.write(f"- Azure API Version: {settings.AZURE_OPENAI_API_VERSION if settings.AZURE_OPENAI_API_VERSION else 'Not set'}")
+                st.write(f"- OpenAI Model: {settings.OPENAI_MODEL}")
+                st.write(f"- OpenAI Base URL: {settings.OPENAI_BASE_URL if settings.OPENAI_BASE_URL else 'Default API URL'}")
+                if settings.OPENAI_ORG_ID:
+                    st.write(f"- OpenAI Organization: {settings.OPENAI_ORG_ID}")
 
     # Check if the required modules are properly imported
     if 'src.llamaindex_app.classifier' not in sys.modules:
