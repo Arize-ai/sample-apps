@@ -70,7 +70,6 @@ secrets.toml
 config.yaml
 config.yml
 config.json
-config.toml
 
 # OS generated files
 .DS_Store
