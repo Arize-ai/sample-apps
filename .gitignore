@@ -5,4 +5,5 @@ AWSCLIV2.pkg
 venv/
 __pycache__/
 *.pyc
-experiment_example.ipynb
+experiment_example.ipynbvenv/
+*/venv/
