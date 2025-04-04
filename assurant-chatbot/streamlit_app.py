@@ -4,6 +4,7 @@ import sys
 import uuid
 import logging
 from pathlib import Path
+import subprocess
 
 # Configure page first (must be the first Streamlit command)
 st.set_page_config(
@@ -11,6 +12,15 @@ st.set_page_config(
     page_icon="📊",
     layout="wide"
 )
+
+# Run setup script if environment variable is set
+if os.environ.get('STREAMLIT_RUN_SETUP', 'false').lower() == 'true':
+    try:
+        st.write("Setting up environment...")
+        subprocess.call(['bash', 'setup.sh'])
+        st.write("Setup completed!")
+    except Exception as e:
+        st.error(f"Setup failed: {e}")
 
 # Suppress PyTorch warnings that might appear in the console
 os.environ['PYTHONWARNINGS'] = 'ignore::RuntimeWarning'
