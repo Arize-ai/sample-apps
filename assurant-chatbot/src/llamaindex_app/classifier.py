@@ -14,7 +14,7 @@ import json
 logger = logging.getLogger(__name__)
 
 
-class AzureOpenAIError(Exception):
+class OpenAIError(Exception):
     pass
 
 
@@ -32,10 +32,9 @@ class QueryCategory(str, Enum):
 
 
 class QueryClassifier:
-    def __init__(self, query_engine, openai_client, deployment):
+    def __init__(self, query_engine, openai_client):
         self.query_engine = query_engine
         self.openai_client = openai_client
-        self.deployment = deployment
         self.risk_tools = RiskScoringTools.get_all_tools()
         self.settings = Settings()
         self.tracer = trace.get_tracer(__name__)
@@ -53,14 +52,13 @@ class QueryClassifier:
             logger.error(f"Failed to parse classification response: {e}")
             raise
 
-    def _call_azure_openai(self, system_prompt: str, query: str, span=None) -> str:
+    def _call_openai(self, system_prompt: str, query: str, span=None) -> str:
         try:
             if span:
                 span.set_attribute(SpanAttributes.LLM_PROMPT_TEMPLATE, system_prompt)
 
-            # Simplest approach - use only the model parameter
             response = self.openai_client.chat.completions.create(
-                model=self.deployment,  # Use deployment name as the model
+                model=self.settings.OPENAI_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": query}
@@ -74,7 +72,7 @@ class QueryClassifier:
             if span:
                 span.set_status(Status(StatusCode.ERROR))
                 span.record_exception(e)
-            raise AzureOpenAIError(f"Azure OpenAI API error: {str(e)}")
+            raise OpenAIError(f"OpenAI API error: {str(e)}")
 
     def classify_query(self, query: str, span=None) -> Tuple[QueryCategory, float]:
         template_vars = {"query": str(query)}
@@ -85,7 +83,7 @@ class QueryClassifier:
             version=TEMPLATE_VERSION,
         ):
             formatted_prompt = CLASSIFICATION_PROMPT.format(**template_vars)
-            output = self._call_azure_openai(formatted_prompt, query, span)
+            output = self._call_openai(formatted_prompt, query, span)
             classification = self._parse_classification_response(output)
 
         if span:
@@ -119,7 +117,7 @@ class QueryClassifier:
                         version=TEMPLATE_VERSION,
                     ):
                         formatted_prompt = RAG_PROMPT.format(**template_vars)
-                        response_text = self._call_azure_openai(formatted_prompt, query, span)
+                        response_text = self._call_openai(formatted_prompt, query, span)
 
                     return Response(response=response_text, source_nodes=nodes)
                 except Exception as e:

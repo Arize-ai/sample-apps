@@ -152,52 +152,37 @@ def handle_session(query_engine: any, classifier: QueryClassifier, tracer: any) 
             print()
 
 
-def init_azure_openai_client():
-    """Initialize the Azure OpenAI client with DefaultAzureCredential."""
-    from openai import AzureOpenAI
-    from azure.identity import DefaultAzureCredential
+def init_openai_client():
+    """Initialize the OpenAI client with API key."""
+    from openai import OpenAI
     from src.llamaindex_app.config import Settings
     
     settings = Settings()
     
-    # Check for required settings
-    if not settings.AZURE_OPENAI_ENDPOINT:
-        raise ValueError("AZURE_OPENAI_ENDPOINT is not set in environment variables")
+    # Check for required setting
+    if not settings.OPENAI_API_KEY:
+        raise ValueError("OPENAI_API_KEY is not set in environment variables")
+    
+    logger.info("Initializing OpenAI client")
+    
+    client_kwargs = {
+        "api_key": settings.OPENAI_API_KEY,
+    }
+    
+    # Add optional organization ID if provided
+    if settings.OPENAI_ORG_ID:
+        client_kwargs["organization"] = settings.OPENAI_ORG_ID
         
-    if not settings.AZURE_OPENAI_API_VERSION:
-        raise ValueError("AZURE_OPENAI_API_VERSION is not set in environment variables")
+    # Add custom base URL if provided
+    if settings.OPENAI_BASE_URL:
+        client_kwargs["base_url"] = settings.OPENAI_BASE_URL
     
-    if not settings.AZURE_OPENAI_DEPLOYMENT:
-        raise ValueError("AZURE_OPENAI_DEPLOYMENT is not set in environment variables")
-    
-    logger.info("Initializing Azure OpenAI client with DefaultAzureCredential")
-    
-    # Try to use API key if available
-    if settings.AZURE_OPENAI_API_KEY:
-        logger.info("Using API key authentication for Azure OpenAI")
-        client = AzureOpenAI(
-            api_key=settings.AZURE_OPENAI_API_KEY,
-            azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
-            api_version=settings.AZURE_OPENAI_API_VERSION
-        )
-    else:
-        # Use DefaultAzureCredential
-        logger.info("Using DefaultAzureCredential for Azure OpenAI")
-        try:
-            default_credential = DefaultAzureCredential()
-            client = AzureOpenAI(
-                azure_ad_token_provider=default_credential.get_token("https://cognitiveservices.azure.com/.default").token,
-                azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
-                api_version=settings.AZURE_OPENAI_API_VERSION
-            )
-        except Exception as e:
-            logger.error(f"Failed to authenticate with DefaultAzureCredential: {str(e)}")
-            raise ValueError(
-                "Authentication failed. Either provide AZURE_OPENAI_API_KEY or ensure "
-                "your VPN/corporate network has proper Azure AD credentials configured."
-            )
-    
-    return client
+    try:
+        client = OpenAI(**client_kwargs)
+        return client
+    except Exception as e:
+        logger.error(f"Failed to initialize OpenAI client: {str(e)}")
+        raise ValueError(f"OpenAI client initialization failed: {str(e)}")
 
 
 def main():
@@ -206,22 +191,21 @@ def main():
         tracer = tracer_provider.get_tracer("llamaindex_app")
         logger.info("Instrumentation initialized successfully")
 
-        # Initialize Azure OpenAI client
-        azure_client = init_azure_openai_client()
-        logger.info("Azure OpenAI client initialized successfully")
+        # Initialize OpenAI client
+        openai_client = init_openai_client()
+        logger.info("OpenAI client initialized successfully")
         
         # Settings for the application
         settings = Settings()
         
-        # Initialize index manager with Azure client
-        index_manager = IndexManager(openai_client=azure_client)
+        # Initialize index manager with OpenAI client
+        index_manager = IndexManager(openai_client=openai_client)
         query_engine = index_manager.get_query_engine()
 
-        # Initialize classifier with Azure client
+        # Initialize classifier with OpenAI client
         classifier = QueryClassifier(
             query_engine=query_engine,
-            openai_client=azure_client,
-            deployment=settings.AZURE_OPENAI_DEPLOYMENT
+            openai_client=openai_client
         )
 
         print("\nWelcome to the Assurant 10-K Analysis & Risk Assessment Expert App!")
