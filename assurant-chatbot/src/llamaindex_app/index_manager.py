@@ -11,7 +11,7 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.openai import OpenAI as LlamaOpenAI
 from phoenix.trace import suppress_tracing
 from tenacity import retry, stop_after_attempt, wait_exponential
-from .config import Settings
+from src.llamaindex_app.config import Settings
 
 logger = logging.getLogger(__name__)
 
