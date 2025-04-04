@@ -8,7 +8,7 @@ from llama_index.core import (
     Settings as LlamaSettings,
 )
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.llms.azure_openai import AzureOpenAI as LlamaAzureOpenAI
+from llama_index.llms.openai import OpenAI as LlamaOpenAI
 from phoenix.trace import suppress_tracing
 from tenacity import retry, stop_after_attempt, wait_exponential
 from .config import Settings
@@ -34,7 +34,7 @@ class IndexManager:
             self.index = self.load_or_create_index()
 
     def _configure_llama_settings(self):
-        """Configure LlamaIndex settings for Azure OpenAI."""
+        """Configure LlamaIndex settings for OpenAI."""
         # Set the embedding model
         LlamaSettings.embed_model = HuggingFaceEmbedding(
             model_name="BAAI/bge-small-en-v1.5"
@@ -44,21 +44,18 @@ class IndexManager:
         LlamaSettings.chunk_size = self.settings.CHUNK_SIZE
         LlamaSettings.chunk_overlap = self.settings.CHUNK_OVERLAP
         
-        # Configure Azure OpenAI for LlamaIndex if needed
+        # Configure OpenAI for LlamaIndex if needed
         if self.openai_client:
             try:
-                # Configure LlamaIndex to use Azure OpenAI
-                LlamaSettings.llm = LlamaAzureOpenAI(
-                    model=self.settings.AZURE_OPENAI_MODEL,
-                    deployment_name=self.settings.AZURE_OPENAI_DEPLOYMENT,
-                    api_key=self.settings.AZURE_OPENAI_API_KEY,  # Will be None for VPN auth
-                    azure_endpoint=self.settings.AZURE_OPENAI_ENDPOINT,
-                    api_version=self.settings.AZURE_OPENAI_API_VERSION,
+                # Configure LlamaIndex to use OpenAI
+                LlamaSettings.llm = LlamaOpenAI(
+                    model=self.settings.OPENAI_MODEL,
+                    api_key=self.settings.OPENAI_API_KEY
                 )
-                logger.info("Azure OpenAI LLM configured for LlamaIndex")
+                logger.info("OpenAI LLM configured for LlamaIndex")
             except ImportError:
-                logger.warning("Could not import AzureOpenAI from llama_index. Make sure llama-index-llms-azure-openai is installed.")
-                logger.warning("To install: pip install llama-index-llms-azure-openai")
+                logger.warning("Could not import OpenAI from llama_index. Make sure llama-index-llms-openai is installed.")
+                logger.warning("To install: pip install llama-index-llms-openai")
 
     @retry(
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
