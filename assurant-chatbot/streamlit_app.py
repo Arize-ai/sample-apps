@@ -5,6 +5,16 @@ import uuid
 import logging
 from pathlib import Path
 import subprocess
+from guardrails import configure
+from guardrails.hub import install
+
+guardrails_api_key = os.environ.get("GUARDRAILS_API_KEY", None)
+if guardrails_api_key:
+    configure(api_key=guardrails_api_key)
+    install("hub://guardrails/detect_jailbreak")
+    logger.info("Guardrails configured and 'detect_jailbreak' guard installed")
+else:
+    logger.info("No GUARDRAILS_API_KEY found, skipping Guardrails configuration")
 
 # Configure page first (must be the first Streamlit command)
 st.set_page_config(
@@ -63,6 +73,15 @@ except ImportError as e:
 
 def init_app():
     """Initialize everything just once using st.session_state."""
+    # Configure Guardrails if GUARDRAILS_API_KEY is present
+    guardrails_api_key = os.environ.get("GUARDRAILS_API_KEY", None)
+    if guardrails_api_key:
+        configure(api_key=guardrails_api_key)
+        install("hub://guardrails/detect_jailbreak")
+        logger.info("Guardrails configured and 'detect_jailbreak' guard installed")
+    else:
+        logger.info("No GUARDRAILS_API_KEY found, skipping Guardrails configuration")
+
     if "initialized" not in st.session_state:
         try:
             st.session_state["initialized"] = True
