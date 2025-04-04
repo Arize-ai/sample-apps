@@ -23,10 +23,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Add project directories to Python path
+# Determine the project root directory
 project_root = Path(__file__).parent.absolute()
-sys.path.insert(0, str(project_root))  # Add the project root first
-logger.info(f"Added project root to path: {project_root}")
+logger.info(f"Project root directory: {project_root}")
+
+# Add the project root to the Python path if it's not already there
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+    logger.info(f"Added project root to path: {project_root}")
+
+# Verify the src directory exists
+src_dir = project_root / "src"
+if not src_dir.exists():
+    logger.error(f"Source directory not found: {src_dir}")
+    st.error("Application structure is incorrect. The 'src' directory is missing.")
+else:
+    logger.info(f"Source directory found: {src_dir}")
 
 # Import the necessary modules using direct imports
 try:
