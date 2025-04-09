@@ -2,6 +2,8 @@ from src.llamaindex_app.index_manager import IndexManager
 from src.llamaindex_app.instrumentation import setup_instrumentation
 from src.llamaindex_app.classifier import QueryClassifier, QueryCategory
 from src.llamaindex_app.config import Settings
+from src.llamaindex_app.config import validate_query_for_jailbreak, validate_query_for_toxic_language
+
 import logging
 import sys
 import uuid
@@ -14,8 +16,6 @@ from src.llamaindex_app.config import (
     validate_query_for_jailbreak, 
     validate_query_for_toxic_language
 )
-from guardrails import Guard
-from guardrails.hub import DetectJailbreak, ToxicLanguage
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,33 +32,23 @@ def validate_interaction(query: str) -> Optional[str]:
     :return: Error message if validation fails, None if query is valid
     """
     try:
-        # Jailbreak detection
-        jailbreak_guard = Guard().use(DetectJailbreak)
-        jailbreak_guard.validate(query)
-        
-        # Toxic language detection
-        toxic_guard = Guard().use(
-            ToxicLanguage, 
-            threshold=0.5,  # Adjust sensitivity as needed
-            validation_method="sentence", 
-            on_fail="exception"
-        )
-        toxic_guard.validate(query)
-        
+       
+        jailbreak_check = validate_query_for_jailbreak(query)
+        toxic_check = validate_query_for_toxic_language(query)
+       
+        if jailbreak_check == False:
+            logger.warning(f"Interaction validation failed: Potential jailbreak attempt detected")
+            return "Potential jailbreak attempt detected"
+        if toxic_check == False:
+            logger.warning(f"Interaction validation failed: Toxic language is not allowed")
+            return "Toxic language is not allowed"
         # If both validations pass, return None (no error)
         return None
     
     except Exception as e:
         # Log the specific validation error
         logger.warning(f"Interaction validation failed: {str(e)}")
-        
-        # Return a generic error message
-        if "jailbreak" in str(e).lower():
-            return "Potential jailbreak attempt detected"
-        elif "toxic" in str(e).lower():
-            return "Toxic language is not allowed"
-        else:
-            return "Input validation failed"
+        return "Input validation failed"
 
 def process_interaction(
     query_engine: any,
