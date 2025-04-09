@@ -122,6 +122,15 @@ def main():
     #Adding session state to the app
     if "query_engine" not in st.session_state:
         st.session_state["query_engine"] = None
+
+    if "classifier" not in st.session_state:
+        st.session_state["classifier"] = None
+    
+    if "tracer" not in st.session_state:
+        st.session_state["tracer"] = None
+    
+    if "chat_history" not in st.session_state:
+        st.session_state["chat_history"] = []
     
     # Sidebar with app info
     with st.sidebar:
