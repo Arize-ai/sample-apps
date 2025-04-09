@@ -61,6 +61,7 @@ class IndexManager:
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
     )
     def load_or_create_index(self):
+    # Always recreate the index, don't check if it exists
         if not self.storage_path.exists():
             self.storage_path.mkdir(parents=True, exist_ok=True)
         elif any(self.storage_path.iterdir()):
@@ -73,6 +74,7 @@ class IndexManager:
             logger.info("Creating new index from specific PDF files...")
             
             # Determine the correct data path
+            # This path should point to the root 'data' folder, not 'src/data'
             project_root = Path(__file__).parent.parent.parent  # Go up from src/llamaindex_app to the project root
             data_path = project_root / "data"
             
@@ -96,9 +98,10 @@ class IndexManager:
                         logger.info(f"Files in data directory: {[f.name for f in data_path.iterdir() if f.is_file()]}")
                     else:
                         logger.error(f"Data directory does not exist: {data_path}")
+                    raise FileNotFoundError(f"File not found: {file_path}")
             
-            # If we found at least one file, create index with what we have
-            if pdf_files:
+            # Only proceed if we found both files
+            if len(pdf_files) == 2:
                 documents = SimpleDirectoryReader(
                     input_files=pdf_files
                 ).load_data()
@@ -111,13 +114,7 @@ class IndexManager:
                 
                 return index
             else:
-                # If no files found, create a minimal index with a placeholder document
-                logger.warning("No PDF files found, creating minimal index with placeholder")
-                from llama_index.core.schema import Document
-                placeholder_doc = Document(text="No Assurant 10-K data available. This is a placeholder index.")
-                index = VectorStoreIndex.from_documents([placeholder_doc], settings=LlamaSettings)
-                index.storage_context.persist(persist_dir=str(self.storage_path))
-                return index
+                raise ValueError(f"Expected 2 PDF files, but found {len(pdf_files)}")
         except Exception as e:
             logger.error(f"Error creating index: {str(e)}")
             raise
