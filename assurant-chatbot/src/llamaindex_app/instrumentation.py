@@ -68,9 +68,9 @@ def setup_instrumentation():
     try:
         load_dotenv()  # Load environment variables
 
-        arize_space_id = st.secrets("ARIZE_SPACE_ID")
-        arize_api_key = st.secrets("ARIZE_API_KEY")
-        arize_model_id = st.secrets("ARIZE_MODEL_ID", "default_model")
+        arize_space_id = st.secrets["ARIZE_SPACE_ID"]
+        arize_api_key = st.secrets["ARIZE_API_KEY"]
+        arize_model_id = st.secrets["ARIZE_MODEL_ID"]
 
         if not arize_space_id or not arize_api_key:
             raise ValueError(
