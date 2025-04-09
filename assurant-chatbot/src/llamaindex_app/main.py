@@ -23,6 +23,9 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 
+tracer_provider = setup_instrumentation()
+tracer = tracer_provider.get_tracer("llamaindex_app")
+
 logger = logging.getLogger(__name__)
 def validate_interaction(query: str) -> Optional[str]:
     """
@@ -32,16 +35,38 @@ def validate_interaction(query: str) -> Optional[str]:
     :return: Error message if validation fails, None if query is valid
     """
     try:
-       
-        jailbreak_check = validate_query_for_jailbreak(query)
-        toxic_check = validate_query_for_toxic_language(query)
-       
-        if jailbreak_check == False:
-            logger.warning(f"Interaction validation failed: Potential jailbreak attempt detected")
-            return "Potential jailbreak attempt detected"
-        if toxic_check == False:
-            logger.warning(f"Interaction validation failed: Toxic language is not allowed")
-            return "Toxic language is not allowed"
+        tracer = tracer_provider.get_tracer("llamaindex_app")
+        with tracer.start_as_current_span(name="validate_interaction",
+        attributes={
+            SpanAttributes.OPENINFERENCE_SPAN_KIND: "GUARDRAIL",
+            SpanAttributes.INPUT_VALUE: query,
+        },
+        ) as span:
+            with tracer.start_as_current_span("Jailbreak Check",attributes={
+            SpanAttributes.OPENINFERENCE_SPAN_KIND: "GUARDRAIL",
+            SpanAttributes.INPUT_VALUE: query,
+        }) as jb_span:
+                jailbreak_check = validate_query_for_jailbreak(query)
+                jb_span.set_attribute(SpanAttributes.OUTPUT_VALUE, "Pass" if jailbreak_check else "Fail")
+                jb_span.set_status(Status(StatusCode.OK))
+            with tracer.start_as_current_span("Toxic Check",attributes={
+            SpanAttributes.OPENINFERENCE_SPAN_KIND: "GUARDRAIL",
+            SpanAttributes.INPUT_VALUE: query,
+        }) as toxic_span:
+                toxic_check = validate_query_for_toxic_language(query)
+                toxic_span.set_attribute(SpanAttributes.OUTPUT_VALUE, "Pass" if toxic_check else "Fail")
+                toxic_span.set_status(Status(StatusCode.OK))
+        
+            if jailbreak_check == False:
+                logger.warning(f"Interaction validation failed: Potential jailbreak attempt detected")
+                span.set_attribute(SpanAttributes.OUTPUT_VALUE, "FAIL")
+                span.set_status(Status(StatusCode.ERROR))
+                return "Potential jailbreak attempt detected"
+            if toxic_check == False:
+                logger.warning(f"Interaction validation failed: Toxic language is not allowed")
+                span.set_attribute(SpanAttributes.OUTPUT_VALUE, "FAIL")
+                span.set_status(Status(StatusCode.ERROR))
+                return "Toxic language is not allowed"
         # If both validations pass, return None (no error)
         return None
     
@@ -58,9 +83,6 @@ def process_interaction(
     session_id: str,
 ) -> Tuple[Optional[Response], Optional[str]]:
     # Validate the interaction first
-    validation_error = validate_interaction(query)
-    if validation_error:
-        return None, validation_error
 
     # Continue with existing processing logic if validation passes
     with tracer.start_as_current_span(
@@ -72,6 +94,9 @@ def process_interaction(
         },
     ) as interaction_span:
         try:
+            validation_error = validate_interaction(query)
+            if validation_error:
+                return None, validation_error
             category, confidence = classifier.classify_query(query, interaction_span)
             interaction_span.set_attribute("query.category", category.value)
             interaction_span.set_attribute("classification.confidence", confidence)
