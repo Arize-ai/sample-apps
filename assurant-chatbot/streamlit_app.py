@@ -118,8 +118,8 @@ def init_app():
 def main():
     """Main Streamlit app function."""
     st.title("Assurant 10-K Analysis & Risk Assessment App")
-    
-    # Initialize query_engine in session state if it doesn't exist
+
+    #Adding session state to the app
     if "query_engine" not in st.session_state:
         st.session_state["query_engine"] = None
     

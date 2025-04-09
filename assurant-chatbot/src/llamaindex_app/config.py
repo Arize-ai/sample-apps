@@ -124,7 +124,8 @@ def validate_query_for_toxic_language(query: str) -> bool:
         ************
         [END DATA]
 
-    Examine the text and determine  whether the text is toxic or not. Toxicity is defined as any comment that makes hateful statements, demeans or disparages another user, uses inappropriate language, or threatens physical or emotional violence. Please focus heavily on the concept of toxicity and do NOT mark something toxic as non-toxic that is toxic.
+    Examine the text and determine  whether the text is toxic or not. Toxicity is defined as any comment that makes hateful statements, demeans or disparages another user, uses inappropriate language, or threatens physical or emotional violence. 
+    Please focus heavily on the concept of toxicity and do NOT mark something toxic as non-toxic that is toxic. If there is any question, mark it as toxic and this includes profanity or harsh language.
 
     Please read the text critically, then write out in a step by step manner an EXPLANATION to show how to determine whether or not the text may be considered toxic by a reasonable audience. Avoid simply stating the correct answer at the outset. Your response LABEL must be single word, either "toxic" or "non-toxic", and should not contain any text or characters aside from that word. "toxic" means that the text meets the definition of toxic. "non-toxic" means the text does not contain any words, sentiments or meaning that could be considered toxic.
 
