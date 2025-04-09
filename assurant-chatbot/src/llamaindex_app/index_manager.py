@@ -37,7 +37,8 @@ class IndexManager:
         """Configure LlamaIndex settings for OpenAI."""
         # Set the embedding model
         LlamaSettings.embed_model = HuggingFaceEmbedding(
-            model_name="BAAI/bge-small-en-v1.5"
+            model_name="BAAI/bge-small-en-v1.5",
+            device="cpu"
         )
         
         # Set chunking parameters
