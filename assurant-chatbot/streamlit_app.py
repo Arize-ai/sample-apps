@@ -66,7 +66,18 @@ def init_app():
 
     if "initialized" not in st.session_state:
         try:
-            st.session_state["initialized"] = True
+            # Set initialization status first
+            st.session_state["initialized"] = False  # Start with False until fully initialized
+            
+            # Initialize all session state variables with default values
+            st.session_state["settings"] = None
+            st.session_state["tracer"] = None
+            st.session_state["openai_client"] = None
+            st.session_state["query_engine"] = None
+            st.session_state["classifier"] = None
+            st.session_state["chat_history"] = []
+            st.session_state["initialization_error"] = None
+            
             logger.info("Starting app initialization")
             
             # Load settings
@@ -85,25 +96,38 @@ def init_app():
                 st.session_state["openai_client"] = openai_client
                 logger.info("OpenAI client initialized")
 
-            # (3) index manager & query engine
+            # (3) index manager & query engine - wrap this in a try/except
             with st.spinner("Loading index and query engine..."):
-                index_manager = IndexManager(openai_client=openai_client)
-                query_engine = index_manager.get_query_engine()
-                st.session_state["query_engine"] = query_engine
-                logger.info("Index and query engine loaded")
+                try:
+                    index_manager = IndexManager(openai_client=openai_client)
+                    query_engine = index_manager.get_query_engine()
+                    st.session_state["query_engine"] = query_engine
+                    logger.info("Index and query engine loaded")
+                except FileNotFoundError as e:
+                    # Handle missing PDF files more gracefully
+                    logger.error(f"Could not find required PDF files: {str(e)}")
+                    st.warning(f"Could not load necessary PDF files: {str(e)}")
+                    # Don't block other initialization steps
 
-            # (4) classifier
-            with st.spinner("Initializing query classifier..."):
-                classifier = QueryClassifier(
-                    query_engine=query_engine,
-                    openai_client=openai_client
-                )
-                st.session_state["classifier"] = classifier
-                logger.info("Query classifier initialized")
+            # (4) classifier - only initialize if query_engine exists
+            if st.session_state["query_engine"] is not None:
+                with st.spinner("Initializing query classifier..."):
+                    classifier = QueryClassifier(
+                        query_engine=st.session_state["query_engine"],
+                        openai_client=openai_client
+                    )
+                    st.session_state["classifier"] = classifier
+                    logger.info("Query classifier initialized")
 
-            st.session_state["chat_history"] = []  # store chat Q&A pairs
-            logger.info("App initialization complete")
-            st.success("App initialized successfully!")
+            # Only mark as fully initialized if all critical components are ready
+            if (st.session_state["openai_client"] is not None and 
+                st.session_state["tracer"] is not None):
+                st.session_state["initialized"] = True
+                logger.info("App initialization complete")
+                st.success("App initialized successfully!")
+            else:
+                st.error("App initialization incomplete. Some components failed to initialize.")
+                return False
             
         except Exception as e:
             st.error(f"Failed to initialize app: {str(e)}")
@@ -111,9 +135,9 @@ def init_app():
             st.session_state["initialization_error"] = str(e)
             return False
         
-        return True
+        return st.session_state["initialized"]
     
-    return "initialized" in st.session_state and st.session_state["initialized"]
+    return st.session_state["initialized"]
 
 def main():
     """Main Streamlit app function."""
@@ -184,6 +208,20 @@ def main():
     submit = st.button("Submit Question")
 
     if submit and user_question.strip():
+        # First check if all required components are initialized
+        if not st.session_state.get("initialized", False):
+            st.error("Application not fully initialized. Please check error messages above.")
+            return
+            
+        # Then check for specific components needed
+        if "query_engine" not in st.session_state or st.session_state["query_engine"] is None:
+            st.error("Query engine not initialized. PDF files may be missing.")
+            return
+            
+        if "classifier" not in st.session_state or st.session_state["classifier"] is None:
+            st.error("Query classifier not initialized.")
+            return
+        
         # retrieve references from st.session_state
         query_engine = st.session_state["query_engine"]
         classifier = st.session_state["classifier"]
