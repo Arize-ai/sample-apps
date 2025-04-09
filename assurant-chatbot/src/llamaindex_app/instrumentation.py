@@ -59,6 +59,7 @@ from openinference.instrumentation.openai import OpenAIInstrumentor
 from dotenv import load_dotenv
 import logging
 import os
+import streamlit as st
 
 logger = logging.getLogger(__name__)
 
@@ -67,9 +68,9 @@ def setup_instrumentation():
     try:
         load_dotenv()  # Load environment variables
 
-        arize_space_id = os.getenv("ARIZE_SPACE_ID")
-        arize_api_key = os.getenv("ARIZE_API_KEY")
-        arize_model_id = os.getenv("ARIZE_MODEL_ID", "default_model")
+        arize_space_id = st.secrets("ARIZE_SPACE_ID")
+        arize_api_key = st.secrets("ARIZE_API_KEY")
+        arize_model_id = st.secrets("ARIZE_MODEL_ID", "default_model")
 
         if not arize_space_id or not arize_api_key:
             raise ValueError(
