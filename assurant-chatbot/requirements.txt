@@ -42,6 +42,3 @@ pypdf==5.4.0
 # Streamlit
 streamlit>=1.32.0
 watchdog>=3.0.0
-
-#Guardrails
-guardrails-ai==0.6.5
