@@ -73,11 +73,11 @@ def init_app():
             settings = Settings()
             st.session_state["settings"] = settings
             
-            # (1) instrumentation (if needed)
-            with st.spinner("Setting up instrumentation..."):
-                tracer_provider = setup_instrumentation()
-                st.session_state["tracer"] = tracer_provider.get_tracer("llamaindex_app")
-                logger.info("Instrumentation setup complete")
+            # # (1) instrumentation (if needed)
+            # with st.spinner("Setting up instrumentation..."):
+            #     tracer_provider = setup_instrumentation()
+            #     st.session_state["tracer"] = tracer_provider.get_tracer("llamaindex_app")
+            #     logger.info("Instrumentation setup complete")
 
             # (2) OpenAI client
             with st.spinner("Initializing OpenAI client..."):
