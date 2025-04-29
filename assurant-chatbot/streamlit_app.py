@@ -6,6 +6,8 @@ import logging
 from pathlib import Path
 import subprocess
 
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+
 # Configure page first (must be the first Streamlit command)
 st.set_page_config(
     page_title="Assurant 10-K Analysis & Risk Assessment App",
