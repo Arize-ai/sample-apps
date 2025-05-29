@@ -9,7 +9,6 @@ from llama_index.core import (
 )
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.openai import OpenAI as LlamaOpenAI
-from phoenix.trace import suppress_tracing
 from tenacity import retry, stop_after_attempt, wait_exponential
 from src.llamaindex_app.config import Settings
 
@@ -28,10 +27,9 @@ class IndexManager:
     def __init__(self, openai_client=None):
         self.settings = Settings()
         self.openai_client = openai_client
-        with suppress_tracing():
-            self._configure_llama_settings()
-            self.storage_path = Path(self.settings.STORAGE_DIR)
-            self.index = self.load_or_create_index()
+        self._configure_llama_settings()
+        self.storage_path = Path(self.settings.STORAGE_DIR)
+        self.index = self.load_or_create_index()
 
     def _configure_llama_settings(self):
         """Configure LlamaIndex settings for OpenAI."""

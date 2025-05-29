@@ -1,5 +1,4 @@
 from src.llamaindex_app.index_manager import IndexManager
-from src.llamaindex_app.instrumentation import setup_instrumentation
 from src.llamaindex_app.classifier import QueryClassifier, QueryCategory
 from src.llamaindex_app.config import Settings
 from src.llamaindex_app.config import validate_query_for_jailbreak, validate_query_for_toxic_language
@@ -8,8 +7,6 @@ import logging
 import sys
 import uuid
 from typing import Tuple, Optional
-from opentelemetry.trace.status import Status, StatusCode
-from openinference.semconv.trace import SpanAttributes
 from llama_index.core import Response
 # guards
 from src.llamaindex_app.config import (
@@ -23,8 +20,6 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 
-tracer_provider = setup_instrumentation()
-tracer = tracer_provider.get_tracer("llamaindex_app")
 
 logger = logging.getLogger(__name__)
 def validate_interaction(query: str) -> Optional[str]:
@@ -35,40 +30,17 @@ def validate_interaction(query: str) -> Optional[str]:
     :return: Error message if validation fails, None if query is valid
     """
     try:
-        tracer = tracer_provider.get_tracer("llamaindex_app")
-        with tracer.start_as_current_span(name="validate_interaction",
-        attributes={
-            SpanAttributes.OPENINFERENCE_SPAN_KIND: "GUARDRAIL",
-            SpanAttributes.INPUT_VALUE: query,
-        },
-        ) as span:
-            with tracer.start_as_current_span("Jailbreak Check",attributes={
-            SpanAttributes.OPENINFERENCE_SPAN_KIND: "GUARDRAIL",
-            SpanAttributes.INPUT_VALUE: query,
-        }) as jb_span:
-                jailbreak_check = validate_query_for_jailbreak(query)
-                jb_span.set_attribute(SpanAttributes.OUTPUT_VALUE, "Pass" if jailbreak_check else "Fail")
-                jb_span.set_status(Status(StatusCode.OK))
-            with tracer.start_as_current_span("Toxic Check",attributes={
-            SpanAttributes.OPENINFERENCE_SPAN_KIND: "GUARDRAIL",
-            SpanAttributes.INPUT_VALUE: query,
-        }) as toxic_span:
-                toxic_check = validate_query_for_toxic_language(query)
-                toxic_span.set_attribute(SpanAttributes.OUTPUT_VALUE, "Pass" if toxic_check else "Fail")
-                toxic_span.set_status(Status(StatusCode.OK))
+        jailbreak_check = validate_query_for_jailbreak(query)
+        toxic_check = validate_query_for_toxic_language(query)
         
-            if jailbreak_check == False:
-                logger.warning(f"Interaction validation failed: Potential jailbreak attempt detected")
-                span.set_attribute(SpanAttributes.OUTPUT_VALUE, "FAIL")
-                span.set_status(Status(StatusCode.ERROR))
-                return "Potential jailbreak attempt detected"
-            if toxic_check == False:
-                logger.warning(f"Interaction validation failed: Toxic language is not allowed")
-                span.set_attribute(SpanAttributes.OUTPUT_VALUE, "FAIL")
-                span.set_status(Status(StatusCode.ERROR))
-                return "Toxic language is not allowed"
-        # If both validations pass, return None (no error)
-        return None
+        if jailbreak_check == False:
+            logger.warning(f"Interaction validation failed: Potential jailbreak attempt detected")
+            return "Potential jailbreak attempt detected"
+        if toxic_check == False:
+            logger.warning(f"Interaction validation failed: Toxic language is not allowed")
+            return "Toxic language is not allowed"
+            # If both validations pass, return None (no error)
+            return None
     
     except Exception as e:
         # Log the specific validation error
@@ -78,54 +50,28 @@ def validate_interaction(query: str) -> Optional[str]:
 def process_interaction(
     query_engine: any,
     classifier: QueryClassifier,
-    tracer: any,
     query: str,
     session_id: str,
 ) -> Tuple[Optional[Response], Optional[str]]:
     # Validate the interaction first
 
-    # Continue with existing processing logic if validation passes
-    with tracer.start_as_current_span(
-        name="user_interaction",
-        attributes={
-            SpanAttributes.OPENINFERENCE_SPAN_KIND: "CHAIN",
-            SpanAttributes.SESSION_ID: session_id,
-            SpanAttributes.INPUT_VALUE: query,
-        },
-    ) as interaction_span:
         try:
             validation_error = validate_interaction(query)
             if validation_error:
                 return None, validation_error
-            category, confidence = classifier.classify_query(query, interaction_span)
-            interaction_span.set_attribute("query.category", category.value)
-            interaction_span.set_attribute("classification.confidence", confidence)
+            category, confidence = classifier.classify_query(query)
+            
 
-            response = classifier.get_response(query, category, interaction_span)
-
-            interaction_span.set_status(Status(StatusCode.OK))
-            interaction_span.set_attribute(
-                SpanAttributes.OUTPUT_VALUE, str(response.response)
-            )
-            interaction_span.set_attribute(
-                "response_length", len(str(response.response))
-            )
-
-            if category == QueryCategory.ASSURANT_10K and response.source_nodes:
-                interaction_span.set_attribute(
-                    "source_count", len(response.source_nodes)
-                )
+            response = classifier.get_response(query, category)
 
             return response, None
 
         except Exception as e:
             logger.error(f"Error processing query in session {session_id}: {str(e)}")
-            interaction_span.set_status(Status(StatusCode.ERROR))
-            interaction_span.record_exception(e)
             return None, str(e)
 
 
-def handle_session(query_engine: any, classifier: QueryClassifier, tracer: any) -> bool:
+def handle_session(query_engine: any, classifier: QueryClassifier) -> bool:
     session_id = str(uuid.uuid4())
     logger.info(f"Starting new session {session_id}")
 
@@ -153,7 +99,7 @@ def handle_session(query_engine: any, classifier: QueryClassifier, tracer: any) 
             continue
 
         response, error = process_interaction(
-            query_engine, classifier, tracer, query, session_id
+            query_engine, classifier, query, session_id
         )
 
         if error:
@@ -202,8 +148,7 @@ def init_openai_client():
 
 def main():
     try:
-        tracer_provider = setup_instrumentation()
-        tracer = tracer_provider.get_tracer("llamaindex_app")
+
         logger.info("Instrumentation initialized successfully")
 
         # Initialize OpenAI client
@@ -226,7 +171,7 @@ def main():
         print("\nWelcome to the Assurant 10-K Analysis & Risk Assessment Expert App!")
 
         while True:
-            should_continue = handle_session(query_engine, classifier, tracer)
+            should_continue = handle_session(query_engine, classifier)
             if not should_continue:
                 print("\nGoodbye!")
                 break

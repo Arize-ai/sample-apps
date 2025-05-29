@@ -59,10 +59,6 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = OpenAIModels.GPT_4_TURBO.value
     OPENAI_BASE_URL: Optional[str] = None  # Optional, default is https://api.openai.com/v1
 
-    # Arize settings
-    ARIZE_SPACE_ID: str
-    ARIZE_API_KEY: str
-    ARIZE_MODEL_ID: str
 
     # API Settings
     API_TIMEOUT: int = 60

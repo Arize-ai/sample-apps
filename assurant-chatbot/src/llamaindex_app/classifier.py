@@ -5,10 +5,6 @@ from llama_index.core import Response
 from pydantic import BaseModel, Field
 from src.llamaindex_app.tools import RiskScoringTools
 from src.llamaindex_app.config import Settings, CLASSIFICATION_PROMPT, RAG_PROMPT, TEMPLATE_VERSION
-from opentelemetry.trace import Status, StatusCode
-from opentelemetry import trace
-from openinference.semconv.trace import SpanAttributes
-from openinference.instrumentation import using_prompt_template
 import json
 
 logger = logging.getLogger(__name__)
@@ -37,7 +33,6 @@ class QueryClassifier:
         self.openai_client = openai_client
         self.risk_tools = RiskScoringTools.get_all_tools()
         self.settings = Settings()
-        self.tracer = trace.get_tracer(__name__)
 
     def _parse_classification_response(self, response_text: str) -> QueryType:
         try:
@@ -54,8 +49,7 @@ class QueryClassifier:
 
     def _call_openai(self, system_prompt: str, query: str, span=None) -> str:
         try:
-            if span:
-                span.set_attribute(SpanAttributes.LLM_PROMPT_TEMPLATE, system_prompt)
+
 
             response = self.openai_client.chat.completions.create(
                 model=self.settings.OPENAI_MODEL,
@@ -69,26 +63,16 @@ class QueryClassifier:
 
             return response.choices[0].message.content
         except Exception as e:
-            if span:
-                span.set_status(Status(StatusCode.ERROR))
-                span.record_exception(e)
+
             raise OpenAIError(f"OpenAI API error: {str(e)}")
 
     def classify_query(self, query: str, span=None) -> Tuple[QueryCategory, float]:
         template_vars = {"query": str(query)}
 
-        with using_prompt_template(
-            template=CLASSIFICATION_PROMPT,
-            variables=template_vars,
-            version=TEMPLATE_VERSION,
-        ):
-            formatted_prompt = CLASSIFICATION_PROMPT.format(**template_vars)
-            output = self._call_openai(formatted_prompt, query, span)
-            classification = self._parse_classification_response(output)
-
-        if span:
-            span.set_attribute("query.category", classification.category)
-            span.set_attribute("query.confidence", classification.confidence)
+        
+        formatted_prompt = CLASSIFICATION_PROMPT.format(**template_vars)
+        output = self._call_openai(formatted_prompt, query)
+        classification = self._parse_classification_response(output)
 
         return QueryCategory(classification.category), classification.confidence
 
@@ -111,13 +95,9 @@ class QueryClassifier:
                         if i <= 3:  # Only use first 3 nodes
                             template_vars[f"context_{i}"] = str(node.text)
 
-                    with using_prompt_template(
-                        template=RAG_PROMPT,
-                        variables=template_vars,
-                        version=TEMPLATE_VERSION,
-                    ):
-                        formatted_prompt = RAG_PROMPT.format(**template_vars)
-                        response_text = self._call_openai(formatted_prompt, query, span)
+                   
+                    formatted_prompt = RAG_PROMPT.format(**template_vars)
+                    response_text = self._call_openai(formatted_prompt, query)
 
                     return Response(response=response_text, source_nodes=nodes)
                 except Exception as e:
@@ -137,7 +117,4 @@ class QueryClassifier:
                 )
         except Exception as e:
             logger.error(f"Error getting response: {str(e)}")
-            if span:
-                span.set_status(Status(StatusCode.ERROR))
-                span.record_exception(e)
             raise
