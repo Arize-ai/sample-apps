@@ -7,8 +7,8 @@ from llama_index.core import (
     load_index_from_storage,
     Settings as LlamaSettings,
 )
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.openai import OpenAI as LlamaOpenAI
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from phoenix.trace import suppress_tracing
 from tenacity import retry, stop_after_attempt, wait_exponential
 from src.llamaindex_app.config import Settings
@@ -35,11 +35,11 @@ class IndexManager:
 
     def _configure_llama_settings(self):
         """Configure LlamaIndex settings for OpenAI."""
-        # Set the embedding model
+        # Configure BGE-small embedding model to match pre-vectorized data
         LlamaSettings.embed_model = HuggingFaceEmbedding(
-            model_name="BAAI/bge-small-en-v1.5",
-            device="cpu"
+            model_name="BAAI/bge-small-en-v1.5"
         )
+        logger.info("Configured BGE-small embedding model for queries")
         
         # Set chunking parameters
         LlamaSettings.chunk_size = self.settings.CHUNK_SIZE
@@ -62,7 +62,21 @@ class IndexManager:
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
     )
     def load_or_create_index(self):
-    # Always recreate the index, don't check if it exists
+        # Check if index already exists (pre-built in Docker image)
+        if self.storage_path.exists() and any(self.storage_path.iterdir()):
+            try:
+                logger.info("Loading existing index from storage...")
+                storage_context = StorageContext.from_defaults(
+                    persist_dir=str(self.storage_path)
+                )
+                index = load_index_from_storage(storage_context)
+                logger.info("Successfully loaded existing index")
+                return index
+            except Exception as e:
+                logger.warning(f"Failed to load existing index: {e}")
+                # Fall through to create new index
+        
+        # Create new index if loading failed or no index exists
         if not self.storage_path.exists():
             self.storage_path.mkdir(parents=True, exist_ok=True)
         elif any(self.storage_path.iterdir()):

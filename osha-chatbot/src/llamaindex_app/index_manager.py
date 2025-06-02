@@ -8,6 +8,7 @@ from llama_index.core import (
     Settings as LlamaSettings,
 )
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.llms.bedrock import Bedrock
 from phoenix.trace import suppress_tracing
 from tenacity import retry, stop_after_attempt, wait_exponential
 from .config import Settings
@@ -33,11 +34,29 @@ class IndexManager:
             self.index = self.load_or_create_index()
 
     def _configure_llama_settings(self):
+        """Configure LlamaIndex settings for Bedrock."""
+        # Set the embedding model explicitly
         LlamaSettings.embed_model = HuggingFaceEmbedding(
-            model_name="BAAI/bge-small-en-v1.5"
+            model_name="BAAI/bge-small-en-v1.5",
+            embed_batch_size=32  # Add batch size for better performance
         )
+        
+        # Set chunking parameters
         LlamaSettings.chunk_size = self.settings.CHUNK_SIZE
         LlamaSettings.chunk_overlap = self.settings.CHUNK_OVERLAP
+        
+        # Configure Bedrock for LlamaIndex if needed
+        if self.bedrock_client:
+            try:
+                # Configure LlamaIndex to use Bedrock
+                LlamaSettings.llm = Bedrock(
+                    model=self.settings.MODEL,
+                    client=self.bedrock_client
+                )
+                logger.info("Bedrock LLM configured for LlamaIndex")
+            except ImportError:
+                logger.warning("Could not import Bedrock from llama_index. Make sure llama-index-llms-bedrock is installed.")
+                logger.warning("To install: pip install llama-index-llms-bedrock")
 
     @retry(
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
