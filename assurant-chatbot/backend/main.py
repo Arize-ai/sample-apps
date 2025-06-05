@@ -5,6 +5,7 @@ from typing import Optional, List
 import uuid
 import logging
 import os
+from contextlib import asynccontextmanager
 
 # Set Hugging Face cache directory
 os.environ['TRANSFORMERS_CACHE'] = '/app/models'
@@ -19,7 +20,14 @@ from src.llamaindex_app.config import Settings
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Assurant Chatbot API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    initialize_app()
+    yield
+    # Shutdown (if needed)
+
+app = FastAPI(title="Assurant Chatbot API", lifespan=lifespan)
 
 # Get allowed origins from environment variable or use default
 ALLOWED_ORIGINS = os.getenv("CORS_ORIGINS", "https://ui-rag-whisperer.vercel.app").split(",")
@@ -82,16 +90,14 @@ def initialize_app():
             logger.error(f"Failed to initialize app: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Initialization failed: {str(e)}")
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the application on startup."""
-    initialize_app()
-
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """Process a chat message and return the response."""
     if not app_state["initialized"]:
         initialize_app()
+    
+    else:
+        logger.info("App already initialized")
     
     session_id = request.session_id or str(uuid.uuid4())
     

@@ -51,12 +51,12 @@ done < .env
 
 # Build the container
 echo "Building container..."
-gcloud builds submit --tag gcr.io/arize-461218/assurant-chatbot-hakan
+gcloud builds submit --tag gcr.io/arize-461218/arize-chatbot
 
 # Deploy to Cloud Run with secrets and non-sensitive env vars
 echo "Deploying to Cloud Run..."
-gcloud run deploy assurant-chatbot \
-  --image gcr.io/arize-461218/assurant-chatbot-hakan \
+gcloud run deploy arize-chatbot \
+  --image gcr.io/arize-461218/arize-chatbot \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \

@@ -40,5 +40,4 @@ numpy==2.2.4
 pypdf==5.4.0
 
 # Streamlit
-streamlit>=1.32.0
 watchdog>=3.0.0

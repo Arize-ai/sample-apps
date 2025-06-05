@@ -23,8 +23,9 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 
-tracer_provider = setup_instrumentation()
-tracer = tracer_provider.get_tracer("llamaindex_app")
+# Remove module-level tracer initialization to prevent side effects on import
+# tracer_provider = setup_instrumentation()
+# tracer = tracer_provider.get_tracer("llamaindex_app")
 
 logger = logging.getLogger(__name__)
 def validate_interaction(query: str) -> Optional[str]:
@@ -35,6 +36,11 @@ def validate_interaction(query: str) -> Optional[str]:
     :return: Error message if validation fails, None if query is valid
     """
     try:
+        # Get tracer_provider from global scope if available, otherwise initialize
+        global tracer_provider
+        if 'tracer_provider' not in globals():
+            tracer_provider = setup_instrumentation()
+        
         tracer = tracer_provider.get_tracer("llamaindex_app")
         with tracer.start_as_current_span(name="validate_interaction",
         attributes={
@@ -202,6 +208,8 @@ def init_openai_client():
 
 def main():
     try:
+        # Initialize tracer_provider as global so other functions can use it
+        global tracer_provider
         tracer_provider = setup_instrumentation()
         tracer = tracer_provider.get_tracer("llamaindex_app")
         logger.info("Instrumentation initialized successfully")

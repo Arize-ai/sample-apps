@@ -56,21 +56,20 @@ from opentelemetry.sdk.trace.export import (
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
 from openinference.instrumentation.openai import OpenAIInstrumentor
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 import logging
 import os
-import streamlit as st
 
 logger = logging.getLogger(__name__)
 
 
 def setup_instrumentation():
     try:
-        load_dotenv()  # Load environment variables
+        # load_dotenv()  # Load environment variables
 
-        arize_space_id = st.secrets["ARIZE_SPACE_ID"]
-        arize_api_key = st.secrets["ARIZE_API_KEY"]
-        arize_model_id = st.secrets["ARIZE_MODEL_ID"]
+        arize_space_id = os.getenv("ARIZE_SPACE_ID")
+        arize_api_key = os.getenv("ARIZE_API_KEY")
+        arize_model_id = os.getenv("ARIZE_MODEL_ID")
 
         if not arize_space_id or not arize_api_key:
             raise ValueError(
@@ -83,6 +82,8 @@ def setup_instrumentation():
         trace_attributes = {
             "model_id": arize_model_id,  # This is how your model will show up in Arize
         }
+
+        logger.info(f"headers: {headers}")
 
         endpoint = "https://otlp.arize.com/v1"
 

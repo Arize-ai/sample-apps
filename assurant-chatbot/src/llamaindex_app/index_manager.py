@@ -96,7 +96,7 @@ class IndexManager:
             logger.info(f"Using data path: {data_path}")
             
             # Specify exact filenames
-            filenames = ["AIZ 10K - 2023.pdf", "AIZ 10K - 2024.pdf"]
+            filenames = ["Arize AI Docs.pdf"]
             
             # Check if files exist
             pdf_files = []
@@ -116,7 +116,7 @@ class IndexManager:
                     raise FileNotFoundError(f"File not found: {file_path}")
             
             # Only proceed if we found both files
-            if len(pdf_files) == 2:
+            if len(pdf_files) == len(filenames):
                 documents = SimpleDirectoryReader(
                     input_files=pdf_files
                 ).load_data()
