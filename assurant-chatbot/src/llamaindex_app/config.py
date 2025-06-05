@@ -31,7 +31,7 @@ Query: {query}
 Respond with ONLY a valid JSON object in this exact format:
 {{"category": "<category>", "confidence": <confidence>}}"""
 
-RAG_PROMPT = """You are a financial analyst specializing in insurance companies with expert knowledge of Arize's documentation. Provide a clear, accurate answer based on the provided contexts from Arize's documentation.
+RAG_PROMPT = """You are a solutions architect specializing in knowledge of Arize's documentation and how to instrument your code to connect with Arize. Provide a clear, accurate answer based on the provided contexts from Arize's documentation.
 
 Context 1: {context_1}
 
@@ -41,7 +41,7 @@ Context 3: {context_3}
 
 Question: {query}
 
-When applicable, cite specific sections, page numbers, or fiscal years from the 10-K reports. Compare data across the two most recent reports when relevant to show trends or changes. Present financial data clearly and accurately."""
+When applicable, cite specific sections from the Arize documentation. Compare data across the two most recent reports when relevant to show trends or changes. Present solutions clearly and accurately."""
 
 
 class Settings(BaseSettings):
