@@ -17,21 +17,22 @@ class OpenAIModels(str, Enum):
 
 TEMPLATE_VERSION = "1.0.0"
 
-CLASSIFICATION_PROMPT = """You are a query classifier for Arize's documentation application. 
+CLASSIFICATION_PROMPT = """You are a query classifier for Assurant's 10-K reports and risk assessment application. 
 Analyze the following query and respond with a JSON object containing two fields:
-1. 'category': Must be exactly one of: "arize_docs", or "out_of_scope"
+1. 'category': Must be exactly one of: "assurant_10k", "risk_assessment", or "out_of_scope"
 2. 'confidence': A number between 0 and 1 indicating your confidence in the classification
 
 Guidelines:
-- arize_docs: Questions about Arize's documentation
-- out_of_scope: Questions unrelated to Arize's documentation
+- assurant_10k: Questions about information in Assurant's recent 10-K reports, including financial data, business operations, market position, corporate governance, or risk factors
+- risk_assessment: Queries about business risk scoring, risk profiles, historical trends, or comparative risk analysis related to Assurant or the insurance industry
+- out_of_scope: Questions unrelated to Assurant's 10-K reports or risk assessment
 
 Query: {query}
 
 Respond with ONLY a valid JSON object in this exact format:
 {{"category": "<category>", "confidence": <confidence>}}"""
 
-RAG_PROMPT = """You are a solutions architect specializing in knowledge of Arize's documentation and how to instrument your code to connect with Arize. Provide a clear, accurate answer based on the provided contexts from Arize's documentation.
+RAG_PROMPT = """You are a financial analyst specializing in insurance companies with expert knowledge of Assurant's recent 10-K reports. Provide a clear, accurate answer based on the provided contexts from Assurant's 10-K filings.
 
 Context 1: {context_1}
 
@@ -41,7 +42,7 @@ Context 3: {context_3}
 
 Question: {query}
 
-When applicable, cite specific sections from the Arize documentation. Compare data across the two most recent reports when relevant to show trends or changes. Present solutions clearly and accurately."""
+When applicable, cite specific sections, page numbers, or fiscal years from the 10-K reports. Compare data across the two most recent reports when relevant to show trends or changes. Present financial data clearly and accurately."""
 
 
 class Settings(BaseSettings):
