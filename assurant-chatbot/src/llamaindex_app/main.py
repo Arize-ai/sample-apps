@@ -1,5 +1,9 @@
 from src.llamaindex_app.index_manager import IndexManager
-from src.llamaindex_app.instrumentation import setup_instrumentation
+from src.llamaindex_app.flexible_instrumentation import (
+    get_instrumentation_manager, 
+    TracerConfig,
+    setup_flexible_instrumentation
+)
 from src.llamaindex_app.classifier import QueryClassifier, QueryCategory
 from src.llamaindex_app.config import Settings
 from src.llamaindex_app.config import validate_query_for_jailbreak, validate_query_for_toxic_language
@@ -23,11 +27,8 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 
-# Remove module-level tracer initialization to prevent side effects on import
-# tracer_provider = setup_instrumentation()
-# tracer = tracer_provider.get_tracer("llamaindex_app")
-
 logger = logging.getLogger(__name__)
+
 def validate_interaction(query: str) -> Optional[str]:
     """
     Validate the user query for potential issues before processing
@@ -36,12 +37,22 @@ def validate_interaction(query: str) -> Optional[str]:
     :return: Error message if validation fails, None if query is valid
     """
     try:
-        # Get tracer_provider from global scope if available, otherwise initialize
-        global tracer_provider
-        if 'tracer_provider' not in globals():
-            tracer_provider = setup_instrumentation()
+        # Get instrumentation manager and tracer
+        instrumentation_manager = get_instrumentation_manager()
+        tracer = instrumentation_manager.get_tracer("llamaindex_app")
         
-        tracer = tracer_provider.get_tracer("llamaindex_app")
+        if not tracer:
+            logger.warning("Tracer not available, skipping telemetry for validation")
+            # Still perform validation without telemetry
+            jailbreak_check = validate_query_for_jailbreak(query)
+            toxic_check = validate_query_for_toxic_language(query)
+            
+            if jailbreak_check == False:
+                return "Potential jailbreak attempt detected"
+            if toxic_check == False:
+                return "Toxic language is not allowed"
+            return None
+        
         with tracer.start_as_current_span(name="validate_interaction",
         attributes={
             SpanAttributes.OPENINFERENCE_SPAN_KIND: "GUARDRAIL",
@@ -208,11 +219,10 @@ def init_openai_client():
 
 def main():
     try:
-        # Initialize tracer_provider as global so other functions can use it
-        global tracer_provider
-        tracer_provider = setup_instrumentation()
+        # Initialize flexible instrumentation
+        tracer_provider = setup_flexible_instrumentation()
         tracer = tracer_provider.get_tracer("llamaindex_app")
-        logger.info("Instrumentation initialized successfully")
+        logger.info("Flexible instrumentation initialized successfully")
 
         # Initialize OpenAI client
         openai_client = init_openai_client()
