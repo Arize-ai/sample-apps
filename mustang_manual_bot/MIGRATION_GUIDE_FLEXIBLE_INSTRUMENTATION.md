@@ -253,24 +253,15 @@ If you see `StatusCode.PERMISSION_DENIED` when exporting traces:
    )
    ```
 
-2. **Verify your credentials**:
+2. **Run the authentication test script**:
+   ```bash
+   python fix_instrumentation_auth.py
+   ```
+   This will test both authentication methods and recommend which one works.
+
+3. **Verify your credentials**:
    - Check that `ARIZE_SPACE_ID` and `ARIZE_API_KEY` are correct
    - Ensure there are no extra spaces or quotes in the values
-
-### Issue: Configuration switching fails (overrides → defaults)
-If switching from custom configuration back to defaults fails:
-
-1. **Environment variable pollution**: The flexible instrumentation now automatically cleans up environment variables when shutting down
-2. **Proper shutdown**: The backend now properly shuts down existing instrumentation before reconfiguring
-3. **Test the fix**:
-   ```bash
-   python test_configuration_switching.py
-   ```
-
-This issue was common when:
-- Frontend sent custom Arize config, worked fine
-- Frontend reset to defaults (empty/no overrides), failed with auth errors
-- Root cause: Previous config's environment variables persisted
 
 ### Issue: Instrumentation not sending data
 - Check if `manager.is_configured()` returns `True`

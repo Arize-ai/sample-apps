@@ -128,7 +128,7 @@ def process_interaction(
                 "response_length", len(str(response.response))
             )
 
-            if category == QueryCategory.ARIZE_DOCS and response.source_nodes:
+            if category == QueryCategory.FORD_MUSTANG and response.source_nodes:
                 interaction_span.set_attribute(
                     "source_count", len(response.source_nodes)
                 )
@@ -147,7 +147,7 @@ def handle_session(query_engine: any, classifier: QueryClassifier, tracer: any) 
     logger.info(f"Starting new session {session_id}")
 
     print(
-        "\nWelcome! I'm here to help with questions about Mustang's manuals."
+        "\nWelcome! I'm here to help with questions about Ford's Mustang manuals."
     )
     print("\nAvailable commands:")
     print("- 'end': Conclude current session")
@@ -241,7 +241,7 @@ def main():
             openai_client=openai_client
         )
 
-        print("\nWelcome to the Mustang Manual Expert App!")
+        print("\nWelcome to the Mustang Manual Expert!")
 
         while True:
             should_continue = handle_session(query_engine, classifier, tracer)

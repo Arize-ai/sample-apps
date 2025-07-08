@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     API_RETRY_DELAY: int = 1
 
     # Phoenix settings
-    phoenix_project_name: str = "10k-chatbot"
+    phoenix_project_name: str = "mustang-manual"
 
     class Config:
         env_file = ".env"

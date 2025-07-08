@@ -53,7 +53,6 @@ class QueryClassifier:
 
     def _call_openai(self, system_prompt: str, query: str, span=None) -> str:
         try:
-            logger.info(f"Using OpenAI model: {self.settings.OPENAI_MODEL}")
             if span:
                 span.set_attribute(SpanAttributes.LLM_PROMPT_TEMPLATE, system_prompt)
 
@@ -121,7 +120,7 @@ class QueryClassifier:
 
                     return Response(response=response_text, source_nodes=nodes)
                 except Exception as e:
-                    logger.error(f"Error in Mustang manual response generation: {str(e)}")
+                    logger.error(f"Error in Mustang Manual response generation: {str(e)}")
                     raise
             else:
                 return Response(

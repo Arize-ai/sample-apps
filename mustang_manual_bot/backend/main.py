@@ -41,7 +41,7 @@ async def lifespan(app: FastAPI):
     # Shutdown (if needed)
     session_manager.clear_cache()
 
-app = FastAPI(title="Arize Chatbot API", lifespan=lifespan)
+app = FastAPI(title="Mustang Manual Chatbot API", lifespan=lifespan)
 
 # Get allowed origins from environment variable or use default
 ALLOWED_ORIGINS = os.getenv("CORS_ORIGINS", "https://ui-rag-whisperer.vercel.app").split(",")
@@ -141,12 +141,9 @@ def initialize_app(env_overrides: Optional[Dict[str, str]] = None):
             source = "overrides + environment fallback" if has_overrides else "environment variables"
             logger.info(f"Using Arize configuration from {source}: model_id={arize_config['model_id']}")
         else:
-            # No valid Arize configuration available
-            logger.warning("No valid Arize configuration found (missing ARIZE_SPACE_ID or ARIZE_API_KEY)")
-            logger.info("Instrumentation will be set up but may not export traces successfully")
-            # Still set up instrumentation with whatever we have (might be empty/test config)
+            # No valid Arize configuration available - use local-only instrumentation
+            logger.info("No valid Arize configuration found, using local-only instrumentation")
             tracer_provider = setup_flexible_instrumentation()
-        
         
         tracer = tracer_provider.get_tracer("llamaindex_app")
         
@@ -261,3 +258,164 @@ async def debug_config():
         }
     except Exception as e:
         return {"error": str(e), "status": "debug_failed"}
+
+@app.post("/admin/rebuild-index")
+async def rebuild_index():
+    """Admin endpoint to force rebuild the index."""
+    try:
+        # Check if we have initialized components
+        if not app_state.get("initialized", False):
+            raise HTTPException(status_code=500, detail="Application not initialized")
+        
+        # Initialize new index manager with force rebuild
+        from src.llamaindex_app.index_manager import IndexManager
+        
+        logger.info("Starting manual index rebuild...")
+        
+        # Create new index manager with force rebuild
+        openai_client = app_state.get("openai_client")
+        index_manager = IndexManager(openai_client=openai_client, force_rebuild=True)
+        
+        # Update the components
+        query_engine = index_manager.get_query_engine()
+        
+        # Update app state
+        app_state["query_engine"] = query_engine
+        
+        logger.info("Manual index rebuild completed successfully")
+        
+        return {
+            "status": "success",
+            "message": "Index rebuilt successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error rebuilding index: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to rebuild index: {str(e)}")
+
+@app.get("/admin/index-status")
+async def index_status():
+    """Admin endpoint to check index status."""
+    try:
+        from pathlib import Path
+        
+        # Use settings directly
+        settings = Settings()
+        storage_path = Path(settings.STORAGE_DIR)
+        
+        # Get data path
+        project_root = Path(__file__).parent.parent
+        data_path = project_root / "data"
+        
+        # Check if index files exist and are valid
+        index_exists = True
+        required_files = ['default__vector_store.json', 'index_store.json', 'docstore.json']
+        
+        if not storage_path.exists():
+            index_exists = False
+        else:
+            for file_name in required_files:
+                file_path = storage_path / file_name
+                if not file_path.exists() or file_path.stat().st_size == 0:
+                    index_exists = False
+                    break
+        
+        # Get PDF files
+        pdf_filenames = [
+            "2016-Mustang-Owners-Manual-version-2_om_EN-US_11_2015.pdf", 
+            "2017-Ford-Mustang-Owners-Manual-version-2_om_EN-US_EN-CA_12_2016.pdf", 
+            "2018-Ford-Mustang-Owners-Manual-version-3_om_EN-US_03_2018.pdf", 
+            "2019-Ford-Mustang-Owners-Manual-version-2_om_EN-US_01_2019.pdf", 
+            "2020-Ford-Mustang-Owners-Manual-version-2_om_EN-US_12_2019.pdf", 
+            "2021-Ford-Mustang-Owners-Manual-version-2_om_EN-US_03_2021.pdf", 
+            "2022-Ford-Mustang-Owners-Manual-version-1_om_EN-US_11_2021.pdf", 
+            "2023_Ford_Mustang_Owners_Manual_version_1_om_EN-US.pdf", 
+            "2024_Ford_Mustang_Owners_Manual_version_1_om_EN-US.pdf", 
+            "2025_MustangS650_OM_ENG_version1.pdf"
+        ]
+        
+        pdf_files = []
+        for filename in pdf_filenames:
+            file_path = data_path / filename
+            if file_path.exists():
+                pdf_files.append(str(file_path))
+        
+        # Determine if rebuild is needed
+        should_rebuild = False
+        if not index_exists:
+            should_rebuild = True
+        else:
+            # Check if any PDF files are newer than index files
+            try:
+                oldest_index_time = None
+                for file_name in required_files:
+                    file_path = storage_path / file_name
+                    if file_path.exists():
+                        file_time = file_path.stat().st_mtime
+                        if oldest_index_time is None or file_time < oldest_index_time:
+                            oldest_index_time = file_time
+                
+                if oldest_index_time is not None:
+                    for pdf_file in pdf_files:
+                        pdf_path = Path(pdf_file)
+                        if pdf_path.exists():
+                            pdf_time = pdf_path.stat().st_mtime
+                            if pdf_time > oldest_index_time:
+                                should_rebuild = True
+                                break
+            except Exception:
+                should_rebuild = True
+        
+        # Get file modification times
+        index_files_info = {}
+        if storage_path.exists():
+            for file_name in required_files:
+                file_path = storage_path / file_name
+                if file_path.exists():
+                    index_files_info[file_name] = {
+                        "exists": True,
+                        "size": file_path.stat().st_size,
+                        "modified": file_path.stat().st_mtime
+                    }
+                else:
+                    index_files_info[file_name] = {"exists": False}
+        
+        pdf_files_info = {}
+        for pdf_file in pdf_files:
+            pdf_path = Path(pdf_file)
+            pdf_files_info[pdf_path.name] = {
+                "exists": pdf_path.exists(),
+                "size": pdf_path.stat().st_size if pdf_path.exists() else 0,
+                "modified": pdf_path.stat().st_mtime if pdf_path.exists() else 0
+            }
+        
+        return {
+            "index_exists": index_exists,
+            "should_rebuild": should_rebuild,
+            "storage_path": str(storage_path),
+            "data_path": str(data_path),
+            "pdf_files_found": len(pdf_files),
+            "index_files": index_files_info,
+            "pdf_files": pdf_files_info
+        }
+        
+    except Exception as e:
+        logger.error(f"Error checking index status: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to check index status: {str(e)}")
+
+@app.get("/")
+async def root():
+    """Root endpoint with basic API information."""
+    return {
+        "name": "Mustang Manual Chatbot API",
+        "status": "healthy" if app_state.get("initialized", False) else "initializing",
+        "endpoints": {
+            "chat": "/api/chat",
+            "health": "/health",
+            "debug": "/debug/config",
+            "admin": {
+                "rebuild_index": "/admin/rebuild-index",
+                "index_status": "/admin/index-status"
+            }
+        }
+    }

@@ -30,19 +30,31 @@ class TracerConfig:
     use_env_headers: bool = False  # Option to use environment variable for headers
     
     @classmethod
-    def from_env(cls, use_env_headers: bool = True) -> "TracerConfig":
+    def from_env(cls, use_env_headers: bool = True, allow_missing: bool = False) -> "TracerConfig":
         """Create configuration from environment variables
         
         Args:
             use_env_headers: If True, use environment variable for headers (default).
                            This matches the original implementation behavior.
+            allow_missing: If True, allow missing space_id and api_key (useful for testing
+                         or environments where tracing is optional)
         """
+        space_id = os.getenv("ARIZE_SPACE_ID")
+        api_key = os.getenv("ARIZE_API_KEY")
+        
+        if not allow_missing and (not space_id or not api_key):
+            raise ValueError("ARIZE_SPACE_ID and ARIZE_API_KEY environment variables are required")
+            
         return cls(
-            space_id=os.getenv("ARIZE_SPACE_ID"),
-            api_key=os.getenv("ARIZE_API_KEY"),
+            space_id=space_id,
+            api_key=api_key,
             model_id=os.getenv("ARIZE_MODEL_ID", "default_model"),
             use_env_headers=use_env_headers
         )
+
+    def is_valid(self) -> bool:
+        """Check if configuration has valid credentials"""
+        return bool(self.space_id and self.api_key)
 
 
 class FlexibleInstrumentation:
@@ -72,12 +84,34 @@ class FlexibleInstrumentation:
         # Shutdown existing configuration if any
         if self._is_configured:
             self.shutdown()
-            
-        if not config.space_id or not config.api_key:
-            raise ValueError(
-                "ARIZE_SPACE_ID and ARIZE_API_KEY must be provided in configuration."
+        
+        # Check if we have valid credentials
+        if not config.is_valid():
+            logger.warning(
+                "Invalid or missing Arize credentials. Setting up local-only instrumentation."
+            )
+            # Create a basic tracer provider without remote export
+            self._tracer_provider = TracerProvider(
+                resource=Resource(attributes={"model_id": config.model_id or "default_model"})
             )
             
+            # Set up instrumentors with the local tracer provider
+            self._llama_index_instrumentor = LlamaIndexInstrumentor()
+            self._llama_index_instrumentor.instrument(
+                tracer_provider=self._tracer_provider, 
+                propagate_context=True
+            )
+            
+            self._openai_instrumentor = OpenAIInstrumentor()
+            self._openai_instrumentor.instrument(
+                tracer_provider=self._tracer_provider
+            )
+            
+            self._is_configured = True
+            logger.info("Local-only instrumentation configured successfully")
+            return self._tracer_provider
+            
+        # We have valid credentials, set up remote export
         # Set headers for authentication
         if config.use_env_headers:
             # Use environment variable approach (like original implementation)
@@ -128,7 +162,7 @@ class FlexibleInstrumentation:
         )
         
         self._is_configured = True
-        logger.info(f"Flexible instrumentation configured successfully")
+        logger.info(f"Remote instrumentation configured successfully")
         logger.info(f"Endpoint: {config.endpoint}")
         logger.info(f"Model ID: {config.model_id}")
         logger.info(f"Using {'environment variable' if config.use_env_headers else 'direct'} headers")
@@ -240,12 +274,13 @@ def setup_flexible_instrumentation(config: Optional[TracerConfig] = None) -> Tra
     
     Args:
         config: Optional TracerConfig. If not provided, will use environment variables.
+                If environment variables are missing, will set up local-only instrumentation.
         
     Returns:
         Configured TracerProvider
     """
     if config is None:
-        config = TracerConfig.from_env()
+        config = TracerConfig.from_env(allow_missing=True)
         
     manager = get_instrumentation_manager()
     return manager.configure(config) 

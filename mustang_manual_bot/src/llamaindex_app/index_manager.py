@@ -1,5 +1,7 @@
 from pathlib import Path
 import logging
+import os
+from datetime import datetime
 from llama_index.core import (
     SimpleDirectoryReader,
     VectorStoreIndex,
@@ -25,12 +27,14 @@ class QueryEngine:
 
 
 class IndexManager:
-    def __init__(self, openai_client=None):
+    def __init__(self, openai_client=None, force_rebuild=False):
         self.settings = Settings()
         self.openai_client = openai_client
+        self.force_rebuild = force_rebuild
         with suppress_tracing():
             self._configure_llama_settings()
             self.storage_path = Path(self.settings.STORAGE_DIR)
+            self.data_path = self._get_data_path()
             self.index = self.load_or_create_index()
 
     def _configure_llama_settings(self):
@@ -58,12 +62,108 @@ class IndexManager:
                 logger.warning("Could not import OpenAI from llama_index. Make sure llama-index-llms-openai is installed.")
                 logger.warning("To install: pip install llama-index-llms-openai")
 
+    def _get_data_path(self):
+        """Get the data directory path."""
+        project_root = Path(__file__).parent.parent.parent  # Go up from src/llamaindex_app to the project root
+        return project_root / "data"
+
+    def _get_pdf_files(self):
+        """Get the list of PDF files to index."""
+        filenames = [
+            "2016-Mustang-Owners-Manual-version-2_om_EN-US_11_2015.pdf", 
+            "2017-Ford-Mustang-Owners-Manual-version-2_om_EN-US_EN-CA_12_2016.pdf", 
+            "2018-Ford-Mustang-Owners-Manual-version-3_om_EN-US_03_2018.pdf", 
+            "2019-Ford-Mustang-Owners-Manual-version-2_om_EN-US_01_2019.pdf", 
+            "2020-Ford-Mustang-Owners-Manual-version-2_om_EN-US_12_2019.pdf", 
+            "2021-Ford-Mustang-Owners-Manual-version-2_om_EN-US_03_2021.pdf", 
+            "2022-Ford-Mustang-Owners-Manual-version-1_om_EN-US_11_2021.pdf", 
+            "2023_Ford_Mustang_Owners_Manual_version_1_om_EN-US.pdf", 
+            "2024_Ford_Mustang_Owners_Manual_version_1_om_EN-US.pdf", 
+            "2025_MustangS650_OM_ENG_version1.pdf"
+        ]
+        
+        pdf_files = []
+        for filename in filenames:
+            file_path = self.data_path / filename
+            if file_path.exists():
+                pdf_files.append(str(file_path))
+            else:
+                logger.warning(f"PDF file not found: {file_path}")
+        
+        return pdf_files
+
+    def _index_exists_and_valid(self):
+        """Check if a valid index exists in storage."""
+        if not self.storage_path.exists():
+            logger.info("Storage directory does not exist")
+            return False
+        
+        # Check for required index files
+        required_files = ['default__vector_store.json', 'index_store.json', 'docstore.json']
+        for file_name in required_files:
+            file_path = self.storage_path / file_name
+            if not file_path.exists():
+                logger.info(f"Required index file missing: {file_name}")
+                return False
+            if file_path.stat().st_size == 0:
+                logger.info(f"Required index file is empty: {file_name}")
+                return False
+        
+        logger.info("Valid index files found in storage")
+        return True
+
+    def _should_rebuild_index(self):
+        """Determine if the index should be rebuilt based on file modifications."""
+        if self.force_rebuild:
+            logger.info("Force rebuild requested")
+            return True
+        
+        if not self._index_exists_and_valid():
+            logger.info("Index does not exist or is invalid, rebuild required")
+            return True
+        
+        # Check if any source files are newer than the index
+        try:
+            # Get the oldest modification time of index files
+            index_files = ['default__vector_store.json', 'index_store.json', 'docstore.json']
+            oldest_index_time = None
+            
+            for file_name in index_files:
+                file_path = self.storage_path / file_name
+                if file_path.exists():
+                    file_time = file_path.stat().st_mtime
+                    if oldest_index_time is None or file_time < oldest_index_time:
+                        oldest_index_time = file_time
+            
+            if oldest_index_time is None:
+                logger.info("Could not determine index modification time, rebuilding")
+                return True
+            
+            # Check if any PDF files are newer than the index
+            pdf_files = self._get_pdf_files()
+            for pdf_file in pdf_files:
+                pdf_path = Path(pdf_file)
+                if pdf_path.exists():
+                    pdf_time = pdf_path.stat().st_mtime
+                    if pdf_time > oldest_index_time:
+                        logger.info(f"PDF file {pdf_file} is newer than index, rebuild required")
+                        return True
+            
+            logger.info("Index is up to date, no rebuild required")
+            return False
+        
+        except Exception as e:
+            logger.warning(f"Error checking file modification times: {e}, rebuilding index")
+            return True
+
     @retry(
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
     )
     def load_or_create_index(self):
-        # Check if index already exists (pre-built in Docker image)
-        if self.storage_path.exists() and any(self.storage_path.iterdir()):
+        """Load existing index or create new one if necessary."""
+        
+        # Check if we should rebuild the index
+        if not self._should_rebuild_index():
             try:
                 logger.info("Loading existing index from storage...")
                 storage_context = StorageContext.from_defaults(
@@ -74,71 +174,46 @@ class IndexManager:
                 return index
             except Exception as e:
                 logger.warning(f"Failed to load existing index: {e}")
-                # Fall through to create new index
+                logger.info("Will create new index instead")
         
-        # Create new index if loading failed or no index exists
+        # Create new index
+        return self._create_new_index()
+
+    def _create_new_index(self):
+        """Create a new index from PDF files."""
+        logger.info("Creating new index from PDF files...")
+        
+        # Ensure storage directory exists
         if not self.storage_path.exists():
             self.storage_path.mkdir(parents=True, exist_ok=True)
-        elif any(self.storage_path.iterdir()):
-            # Clear existing index files if they exist
-            logger.info("Removing existing index...")
-            for file in self.storage_path.iterdir():
-                file.unlink()
         
         try:
-            logger.info("Creating new index from specific PDF files...")
+            logger.info(f"Using data path: {self.data_path}")
             
-            # Determine the correct data path
-            # This path should point to the root 'data' folder, not 'src/data'
-            project_root = Path(__file__).parent.parent.parent  # Go up from src/llamaindex_app to the project root
-            data_path = project_root / "data"
+            # Get PDF files
+            pdf_files = self._get_pdf_files()
             
-            logger.info(f"Using data path: {data_path}")
+            if not pdf_files:
+                raise ValueError("No PDF files found to index")
             
-            # Specify exact filenames
-            filenames = ["2016-Mustang-Owners-Manual-version-2_om_EN-US_11_2015.pdf", 
-                         "2017-Ford-Mustang-Owners-Manual-version-2_om_EN-US_EN-CA_12_2016.pdf", 
-                         "2018-Ford-Mustang-Owners-Manual-version-3_om_EN-US_03_2018.pdf", 
-                         "2019-Ford-Mustang-Owners-Manual-version-2_om_EN-US_01_2019.pdf", 
-                         "2020-Ford-Mustang-Owners-Manual-version-2_om_EN-US_12_2019.pdf", 
-                         "2021-Ford-Mustang-Owners-Manual-version-2_om_EN-US_03_2021.pdf", 
-                         "2022-Ford-Mustang-Owners-Manual-version-1_om_EN-US_11_2021.pdf", 
-                         "2023_Ford_Mustang_Owners_Manual_version_1_om_EN-US.pdf", 
-                         "2024_Ford_Mustang_Owners_Manual_version_1_om_EN-US.pdf", 
-                         "2025_MustangS650_OM_ENG_version1.pdf"]
+            logger.info(f"Found {len(pdf_files)} PDF files to index")
+            for pdf_file in pdf_files:
+                logger.info(f"  - {Path(pdf_file).name}")
             
-            # Check if files exist
-            pdf_files = []
-            for filename in filenames:
-                file_path = data_path / filename
-                logger.info(f"Checking for file: {file_path}")
-                if file_path.exists():
-                    pdf_files.append(str(file_path))
-                    logger.info(f"File found: {file_path}")
-                else:
-                    logger.error(f"File not found: {file_path}")
-                    # List files in the data directory to help debug
-                    if data_path.exists():
-                        logger.info(f"Files in data directory: {[f.name for f in data_path.iterdir() if f.is_file()]}")
-                    else:
-                        logger.error(f"Data directory does not exist: {data_path}")
-                    raise FileNotFoundError(f"File not found: {file_path}")
+            # Load documents
+            documents = SimpleDirectoryReader(
+                input_files=pdf_files
+            ).load_data()
             
-            # Only proceed if we found both files
-            if len(pdf_files) == len(filenames):
-                documents = SimpleDirectoryReader(
-                    input_files=pdf_files
-                ).load_data()
-                
-                logger.info(f"Loaded {len(documents)} documents, creating index...")
-                index = VectorStoreIndex.from_documents(documents, settings=LlamaSettings)
-                
-                logger.info("Persisting index to storage...")
-                index.storage_context.persist(persist_dir=str(self.storage_path))
-                
-                return index
-            else:
-                raise ValueError(f"Expected {len(filenames)} PDF files, but found {len(pdf_files)}")
+            logger.info(f"Loaded {len(documents)} documents, creating index...")
+            index = VectorStoreIndex.from_documents(documents, settings=LlamaSettings)
+            
+            logger.info("Persisting index to storage...")
+            index.storage_context.persist(persist_dir=str(self.storage_path))
+            
+            logger.info("Index created and persisted successfully")
+            return index
+            
         except Exception as e:
             logger.error(f"Error creating index: {str(e)}")
             raise
@@ -146,3 +221,12 @@ class IndexManager:
     def get_query_engine(self):
         retriever = self.index.as_retriever(similarity_top_k=3)
         return QueryEngine(retriever=retriever)
+
+    def rebuild_index(self):
+        """Force rebuild the index."""
+        logger.info("Forcing index rebuild...")
+        self.force_rebuild = True
+        self.index = self._create_new_index()
+        self.force_rebuild = False
+        logger.info("Index rebuild completed")
+        return self.index

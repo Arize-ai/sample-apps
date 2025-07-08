@@ -61,6 +61,4 @@ gcloud run deploy mustang-manual-bot \
   --region us-central1 \
   --allow-unauthenticated \
   --memory 2Gi \
-  --timeout 600 \
-
-echo "Deployment complete!" 
+  --timeout 300 \

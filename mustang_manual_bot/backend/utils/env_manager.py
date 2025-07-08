@@ -47,6 +47,8 @@ class EnvironmentManager:
                     # Restore original value
                     os.environ[key] = original_values[key]
                 logger.info(f"Restored {key}")
+                logger.info(f"Original value: {original_values[key]}")
+                logger.info(f"New value: {os.environ[key]}")
 
 def validate_env_overrides(overrides: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
     """

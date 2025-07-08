@@ -23,6 +23,11 @@ ENV HF_HOME=/app/models
 ENV PYTHONPATH=/app
 ENV PORT=8080
 
+# Optional Arize configuration (can be overridden at runtime)
+ENV ARIZE_SPACE_ID=""
+ENV ARIZE_API_KEY=""
+ENV ARIZE_MODEL_ID="mustang_manual_bot"
+
 # Expose the port
 EXPOSE 8080
 
