@@ -1,0 +1,13 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '--build-arg', 'GUARDRAILS_TOKEN=${_GUARDRAILS_TOKEN}',
+      '-t', 'gcr.io/arize-461218/guardrails',
+      '.'
+    ]
+
+images: ['gcr.io/arize-461218/guardrails']
+
+substitutions:
+  _GUARDRAILS_TOKEN: '' 
