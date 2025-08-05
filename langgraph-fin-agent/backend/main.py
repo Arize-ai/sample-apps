@@ -1,26 +1,26 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional, Dict, Any
-import uuid
 import logging
 import os
+import uuid
 from contextlib import asynccontextmanager
+from typing import Any, Dict, Optional
 
 # Set up environment
 import dotenv
-
-dotenv.load_dotenv()
-
-from langgraph_fin_agent.graph import build_app
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.messages import HumanMessage
-from backend.utils.env_manager import EnvironmentManager, validate_env_overrides
-from backend.utils.session_manager import SessionManager
 from langgraph_fin_agent.flexible_instrumentation import (
-    get_instrumentation_manager,
     TracerConfig,
+    get_instrumentation_manager,
     setup_flexible_instrumentation,
 )
+from langgraph_fin_agent.graph import build_app
+from pydantic import BaseModel
+
+from backend.utils.env_manager import EnvironmentManager, validate_env_overrides
+from backend.utils.session_manager import SessionManager
+
+dotenv.load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
