@@ -1,18 +1,17 @@
 import argparse
 import asyncio
+import os
 import sys
 from typing import Any, List, TypedDict
 
+from arize.otel import register
+from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
-# from relari_otel import Relari
-# from relari_otel.specifications import Specifications
-
-import os
-import dotenv
-
-dotenv.load_dotenv()
+from openinference.instrumentation.langchain import LangChainInstrumentor
 
 from .graph import build_app
+
+load_dotenv()
 
 
 class ConversationState(TypedDict):
@@ -31,58 +30,6 @@ class ConversationState(TypedDict):
     final: bool | None
 
 
-# Tracing setup
-from arize.otel import register
-
-# # Our custom span processor solution
-# class FilteringSpanProcessor(BatchSpanProcessor):
-#     def __init__(self, span_fields: list, output_mask_list: list, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.span_fields = span_fields
-#         self.output_mask = output_mask_list
-
-#     def _filter_condition(self, span: Span) -> bool:
-#         # returns modified span with the filtered out fields
-#         if hasattr(span, "attributes"):
-#             for attr in span.attributes:
-#                 if attr in self.span_fields:
-#                     try:
-#                         attr_dict = json.loads(span.attributes[attr])
-#                         success = 1
-#                     except Exception as e: # not important
-#                         print("ECODE-ARIZE-FilteringSpanProcessor: String-to-dict parsing error:", e)
-#                         success = 0
-
-#                     if success:
-#                         new_dict = copy.deepcopy(attr_dict)
-#                         for k, v in attr_dict.items():
-#                             if k in self.output_mask:
-#                                 # new_dict.pop(k)
-#                                 new_dict[k] = "[REDACTED]"
-
-#                         new_span_str = json.dumps(new_dict)
-#                         span._attributes._dict[attr] = new_span_str # new assignment;
-#                         # didn't able to modify in other terms because it is read-only ReadableSpan object
-#                     else:
-#                         return span
-
-#             return span
-
-
-#     def on_start(self, span: Span, parent_context: Context) -> None:
-#         pass
-
-#     def on_end(self, span: ReadableSpan) -> None:
-#         span = self._filter_condition(span)
-#         super().on_end(span)
-
-# custom_span_processor = FilteringSpanProcessor(
-#     endpoint=os.getenv("PHOENIX_ENDPOINT"),
-#     protocol="http/protobuf",
-#     span_fields = ["input.value", "output.value"],
-#     output_mask_list = ["messages", "result", "final_df", "final_html", "interpretation"]
-#     )
-
 tracer_provider = register(
     project_name=os.getenv("ARIZE_PROJECT_NAME"),
     api_key=os.getenv("ARIZE_API_KEY"),
@@ -90,13 +37,7 @@ tracer_provider = register(
     # endpoint=os.getenv("PHOENIX_ENDPOINT"),
 )
 
-# tracer_provider.add_span_processor(custom_span_processor)
-
-from openinference.instrumentation.langchain import LangChainInstrumentor
-
 LangChainInstrumentor().instrument(tracer_provider=tracer_provider)
-
-# Relari.init(project_name="langgraph-fin-agent", batch=False)
 
 
 async def main_interactive():
