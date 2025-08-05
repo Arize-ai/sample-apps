@@ -7,8 +7,6 @@ from langchain_core.messages import HumanMessage
 # from relari_otel import Relari
 # from relari_otel.specifications import Specifications
 
-import json
-import copy
 import os
 import dotenv
 
@@ -18,25 +16,23 @@ from .graph import build_app
 
 
 class ConversationState(TypedDict):
-    messages: List # sensitive information
+    messages: List  # sensitive information
     question: str
     error: str | None
     ecode: str | None
     columns: list | None
     s3_path: str | None
-    result: str | None # sensitive information
+    result: str | None  # sensitive information
     df_status: str | None
     report_suggestion_result: str | None
     report_suggestion_result_json: str | None
     interpretation: str | None
     exec_retry_count: int
     final: bool | None
-    
-    
+
+
 # Tracing setup
-from arize.otel import BatchSpanProcessor, register
-from opentelemetry.context import Context
-from opentelemetry.sdk.trace import ReadableSpan, Span
+from arize.otel import register
 
 # # Our custom span processor solution
 # class FilteringSpanProcessor(BatchSpanProcessor):
@@ -97,6 +93,7 @@ tracer_provider = register(
 # tracer_provider.add_span_processor(custom_span_processor)
 
 from openinference.instrumentation.langchain import LangChainInstrumentor
+
 LangChainInstrumentor().instrument(tracer_provider=tracer_provider)
 
 # Relari.init(project_name="langgraph-fin-agent", batch=False)

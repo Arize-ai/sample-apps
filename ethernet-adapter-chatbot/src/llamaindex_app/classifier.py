@@ -4,7 +4,12 @@ import logging
 from llama_index.core import Response
 from pydantic import BaseModel, Field
 from src.llamaindex_app.tools import RiskScoringTools
-from src.llamaindex_app.config import Settings, CLASSIFICATION_PROMPT, RAG_PROMPT, TEMPLATE_VERSION
+from src.llamaindex_app.config import (
+    Settings,
+    CLASSIFICATION_PROMPT,
+    RAG_PROMPT,
+    TEMPLATE_VERSION,
+)
 from opentelemetry.trace import Status, StatusCode
 from opentelemetry import trace
 from openinference.semconv.trace import SpanAttributes
@@ -26,7 +31,9 @@ class QueryType(BaseModel):
 
 
 class QueryCategory(str, Enum):
-    BROADCOM_ETHERNET_NETWORK_ADAPTER_USER_GUIDE = "broadcom_ethernet_network_adapter_user_guide"
+    BROADCOM_ETHERNET_NETWORK_ADAPTER_USER_GUIDE = (
+        "broadcom_ethernet_network_adapter_user_guide"
+    )
     OUT_OF_SCOPE = "out_of_scope"
 
 
@@ -60,10 +67,10 @@ class QueryClassifier:
                 model=self.settings.OPENAI_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": query}
+                    {"role": "user", "content": query},
                 ],
                 temperature=0,
-                max_tokens=4096
+                max_tokens=4096,
             )
 
             return response.choices[0].message.content
@@ -120,7 +127,9 @@ class QueryClassifier:
 
                     return Response(response=response_text, source_nodes=nodes)
                 except Exception as e:
-                    logger.error(f"Error in Broadcom Ethernet Network Adapter User Guide response generation: {str(e)}")
+                    logger.error(
+                        f"Error in Broadcom Ethernet Network Adapter User Guide response generation: {str(e)}"
+                    )
                     raise
             else:
                 return Response(

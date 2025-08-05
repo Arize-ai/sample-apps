@@ -2,7 +2,10 @@ from src.llamaindex_app.index_manager import IndexManager
 from src.llamaindex_app.instrumentation import setup_instrumentation
 from src.llamaindex_app.classifier import QueryClassifier, QueryCategory
 from src.llamaindex_app.config import Settings
-from src.llamaindex_app.config import validate_query_for_jailbreak, validate_query_for_toxic_language
+from src.llamaindex_app.config import (
+    validate_query_for_jailbreak,
+    validate_query_for_toxic_language,
+)
 
 import logging
 import sys
@@ -12,10 +15,6 @@ from opentelemetry.trace.status import Status, StatusCode
 from openinference.semconv.trace import SpanAttributes
 from llama_index.core import Response
 # guards
-from src.llamaindex_app.config import (
-    validate_query_for_jailbreak, 
-    validate_query_for_toxic_language
-)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,53 +26,71 @@ tracer_provider = setup_instrumentation()
 tracer = tracer_provider.get_tracer("llamaindex_app")
 
 logger = logging.getLogger(__name__)
+
+
 def validate_interaction(query: str) -> Optional[str]:
     """
     Validate the user query for potential issues before processing
-    
+
     :param query: Input query to validate
     :return: Error message if validation fails, None if query is valid
     """
     try:
         tracer = tracer_provider.get_tracer("llamaindex_app")
-        with tracer.start_as_current_span(name="validate_interaction",
-        attributes={
-            SpanAttributes.OPENINFERENCE_SPAN_KIND: "GUARDRAIL",
-            SpanAttributes.INPUT_VALUE: query,
-        },
+        with tracer.start_as_current_span(
+            name="validate_interaction",
+            attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: "GUARDRAIL",
+                SpanAttributes.INPUT_VALUE: query,
+            },
         ) as span:
-            with tracer.start_as_current_span("Jailbreak Check",attributes={
-            SpanAttributes.OPENINFERENCE_SPAN_KIND: "GUARDRAIL",
-            SpanAttributes.INPUT_VALUE: query,
-        }) as jb_span:
+            with tracer.start_as_current_span(
+                "Jailbreak Check",
+                attributes={
+                    SpanAttributes.OPENINFERENCE_SPAN_KIND: "GUARDRAIL",
+                    SpanAttributes.INPUT_VALUE: query,
+                },
+            ) as jb_span:
                 jailbreak_check = validate_query_for_jailbreak(query)
-                jb_span.set_attribute(SpanAttributes.OUTPUT_VALUE, "Pass" if jailbreak_check else "Fail")
+                jb_span.set_attribute(
+                    SpanAttributes.OUTPUT_VALUE, "Pass" if jailbreak_check else "Fail"
+                )
                 jb_span.set_status(Status(StatusCode.OK))
-            with tracer.start_as_current_span("Toxic Check",attributes={
-            SpanAttributes.OPENINFERENCE_SPAN_KIND: "GUARDRAIL",
-            SpanAttributes.INPUT_VALUE: query,
-        }) as toxic_span:
+            with tracer.start_as_current_span(
+                "Toxic Check",
+                attributes={
+                    SpanAttributes.OPENINFERENCE_SPAN_KIND: "GUARDRAIL",
+                    SpanAttributes.INPUT_VALUE: query,
+                },
+            ) as toxic_span:
                 toxic_check = validate_query_for_toxic_language(query)
-                toxic_span.set_attribute(SpanAttributes.OUTPUT_VALUE, "Pass" if toxic_check else "Fail")
+                toxic_span.set_attribute(
+                    SpanAttributes.OUTPUT_VALUE, "Pass" if toxic_check else "Fail"
+                )
                 toxic_span.set_status(Status(StatusCode.OK))
-        
+
             if jailbreak_check == False:
-                logger.warning(f"Interaction validation failed: Potential jailbreak attempt detected")
+                logger.warning(
+                    "Interaction validation failed: Potential jailbreak attempt detected"
+                )
                 span.set_attribute(SpanAttributes.OUTPUT_VALUE, "FAIL")
                 span.set_status(Status(StatusCode.ERROR))
                 return "Potential jailbreak attempt detected"
             if toxic_check == False:
-                logger.warning(f"Interaction validation failed: Toxic language is not allowed")
+                logger.warning(
+                    "Interaction validation failed: Toxic language is not allowed"
+                )
                 span.set_attribute(SpanAttributes.OUTPUT_VALUE, "FAIL")
                 span.set_status(Status(StatusCode.ERROR))
                 return "Toxic language is not allowed"
         # If both validations pass, return None (no error)
         return None
-    
+
     except Exception as e:
         # Log the specific validation error
         logger.warning(f"Interaction validation failed: {str(e)}")
         return "Input validation failed"
+
 
 def process_interaction(
     query_engine: any,
@@ -97,25 +114,27 @@ def process_interaction(
             validation_error = validate_interaction(query)
             if validation_error:
                 return None, validation_error
-            
+
             with tracer.start_as_current_span(
-            name="query_classification",
-            attributes={
-                SpanAttributes.OPENINFERENCE_SPAN_KIND: "CHAIN",
-                SpanAttributes.INPUT_VALUE: query,
-            },
+                name="query_classification",
+                attributes={
+                    SpanAttributes.OPENINFERENCE_SPAN_KIND: "CHAIN",
+                    SpanAttributes.INPUT_VALUE: query,
+                },
             ) as classification_span:
-                category, confidence = classifier.classify_query(query, interaction_span)
+                category, confidence = classifier.classify_query(
+                    query, interaction_span
+                )
                 classification_span.set_attribute("output.value", category.value)
             interaction_span.set_attribute("query.category", category.value)
             interaction_span.set_attribute("classification.confidence", confidence)
 
             with tracer.start_as_current_span(
-            name="RAG_response",
-            attributes={
-                SpanAttributes.OPENINFERENCE_SPAN_KIND: "CHAIN",
-                SpanAttributes.INPUT_VALUE: query,
-            },
+                name="RAG_response",
+                attributes={
+                    SpanAttributes.OPENINFERENCE_SPAN_KIND: "CHAIN",
+                    SpanAttributes.INPUT_VALUE: query,
+                },
             ) as response_span:
                 response = classifier.get_response(query, category, interaction_span)
                 response_span.set_attribute("output.value", response.response)
@@ -188,27 +207,27 @@ def init_openai_client():
     """Initialize the OpenAI client with API key."""
     from openai import OpenAI
     from src.llamaindex_app.config import Settings
-    
+
     settings = Settings()
-    
+
     # Check for required setting
     if not settings.OPENAI_API_KEY:
         raise ValueError("OPENAI_API_KEY is not set in environment variables")
-    
+
     logger.info("Initializing OpenAI client")
-    
+
     client_kwargs = {
         "api_key": settings.OPENAI_API_KEY,
     }
-    
+
     # Add optional organization ID if provided
     if settings.OPENAI_ORG_ID:
         client_kwargs["organization"] = settings.OPENAI_ORG_ID
-        
+
     # Add custom base URL if provided
     if settings.OPENAI_BASE_URL:
         client_kwargs["base_url"] = settings.OPENAI_BASE_URL
-    
+
     try:
         client = OpenAI(**client_kwargs)
         return client
@@ -226,18 +245,17 @@ def main():
         # Initialize OpenAI client
         openai_client = init_openai_client()
         logger.info("OpenAI client initialized successfully")
-        
+
         # Settings for the application
         settings = Settings()
-        
+
         # Initialize index manager with OpenAI client
         index_manager = IndexManager(openai_client=openai_client)
         query_engine = index_manager.get_query_engine()
 
         # Initialize classifier with OpenAI client
         classifier = QueryClassifier(
-            query_engine=query_engine,
-            openai_client=openai_client
+            query_engine=query_engine, openai_client=openai_client
         )
 
         print("\nWelcome to the American Airlines Sustainability Expert App!")
