@@ -5,18 +5,23 @@
 #
 
 import os
+import time
 import uuid
 import webbrowser
-import time
 
 import aiohttp
 from dotenv import load_dotenv
 from loguru import logger
+
+# Import Arize AX tracing setup
+from opentelemetry import context as context_api
+from opentelemetry import trace as trace_api
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
 from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
+from pipecat.services.deepgram.stt import DeepgramSTTService
 from pipecat.services.elevenlabs.tts import ElevenLabsTTSService
 from pipecat.services.openai.llm import OpenAILLMService
 from pipecat.transports.services.daily import DailyParams, DailyTransport
@@ -25,27 +30,19 @@ from pipecat.transports.services.helpers.daily_rest import (
     DailyRoomObject,
     DailyRoomParams,
 )
-from pipecat.services.deepgram.stt import DeepgramSTTService
-
-# Load environment variables
-load_dotenv()
-
-# Import Arize AX tracing setup
 from tracing_setup import (
-    setup_arize_tracing,
     SessionTracer,
-    with_context_propagation,
     add_session_metadata,
-    trace_llm_interaction,
-    trace_audio_processing,
-    trace_pipeline_event,
     create_child_span_with_context,
     force_flush_traces,
-    shutdown_tracing,
     get_tracer,
+    setup_arize_tracing,
+    shutdown_tracing,
+    trace_audio_processing,
+    trace_llm_interaction,
+    trace_pipeline_event,
+    with_context_propagation,
 )
-from opentelemetry import trace as trace_api
-from opentelemetry import context as context_api
 
 # Load configuration
 load_dotenv()
