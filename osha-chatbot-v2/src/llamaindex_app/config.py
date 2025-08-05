@@ -1,7 +1,11 @@
-from pydantic_settings import BaseSettings
-from pathlib import Path
 from enum import Enum
+from pathlib import Path
 from typing import Optional
+
+from pydantic_settings import BaseSettings
+
+from guardrails import Guard
+from guardrails.hub import DetectJailbreak, ToxicLanguage
 
 
 class AzureOpenAIModels(str, Enum):
@@ -72,10 +76,6 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         extra = "allow"
-
-
-from guardrails.hub import DetectJailbreak, ToxicLanguage
-from guardrails import Guard
 
 
 def validate_query_for_jailbreak(query: str) -> bool:
