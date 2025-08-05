@@ -315,7 +315,7 @@ async def local_daily():
     session_id = f"local_session_{uuid.uuid4().hex[:8]}"
 
     # Use SessionTracer context manager to create a main session span
-    with SessionTracer(session_id, "local_development") as session:
+    with SessionTracer(session_id, "local_development"):
         logger.info(f"🚀 Starting local development session: {session_id}")
 
         # Add initial session metadata
@@ -387,7 +387,7 @@ async def main_daily(room_url: str):
     session_id = f"prod_session_{uuid.uuid4().hex[:8]}"
 
     # Use SessionTracer context manager
-    with SessionTracer(session_id, "production") as session:
+    with SessionTracer(session_id, "production"):
         logger.info(f"🚀 Starting production session: {session_id}")
 
         # Add initial session metadata
@@ -440,7 +440,7 @@ async def bot(args):
     session_id = f"cloud_session_{uuid.uuid4().hex[:8]}"
 
     # Use SessionTracer context manager for comprehensive tracing
-    with SessionTracer(session_id, "pipecat_cloud") as session:
+    with SessionTracer(session_id, "pipecat_cloud"):
         logger.info(f"🚀 Starting pipecat cloud session: {session_id}")
 
         # Add initial session metadata
