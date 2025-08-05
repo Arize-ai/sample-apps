@@ -50,7 +50,7 @@ def validate_interaction(query: str) -> Optional[str]:
 
             if not jailbreak_check:
                 return "Potential jailbreak attempt detected"
-            if toxic_check == False:
+            if not toxic_check:
                 return "Toxic language is not allowed"
             return None
 
@@ -93,7 +93,7 @@ def validate_interaction(query: str) -> Optional[str]:
                 span.set_attribute(SpanAttributes.OUTPUT_VALUE, "FAIL")
                 span.set_status(Status(StatusCode.ERROR))
                 return "Potential jailbreak attempt detected"
-            if toxic_check == False:
+            if not toxic_check:
                 logger.warning(
                     "Interaction validation failed: Toxic language is not allowed"
                 )
