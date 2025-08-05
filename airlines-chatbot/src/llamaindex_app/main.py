@@ -1,19 +1,21 @@
-from src.llamaindex_app.index_manager import IndexManager
-from src.llamaindex_app.instrumentation import setup_instrumentation
-from src.llamaindex_app.classifier import QueryClassifier, QueryCategory
-from src.llamaindex_app.config import Settings
-from src.llamaindex_app.config import (
-    validate_query_for_jailbreak,
-    validate_query_for_toxic_language,
-)
-
 import logging
 import sys
 import uuid
-from typing import Tuple, Optional
-from opentelemetry.trace.status import Status, StatusCode
-from openinference.semconv.trace import SpanAttributes
+from typing import Optional, Tuple
+
 from llama_index.core import Response
+from openinference.semconv.trace import SpanAttributes
+from opentelemetry.trace.status import Status, StatusCode
+
+from src.llamaindex_app.classifier import QueryCategory, QueryClassifier
+from src.llamaindex_app.config import (
+    Settings,
+    validate_query_for_jailbreak,
+    validate_query_for_toxic_language,
+)
+from src.llamaindex_app.index_manager import IndexManager
+from src.llamaindex_app.instrumentation import setup_instrumentation
+
 # guards
 
 logging.basicConfig(
@@ -69,14 +71,14 @@ def validate_interaction(query: str) -> Optional[str]:
                 )
                 toxic_span.set_status(Status(StatusCode.OK))
 
-            if jailbreak_check == False:
+            if not jailbreak_check:
                 logger.warning(
                     "Interaction validation failed: Potential jailbreak attempt detected"
                 )
                 span.set_attribute(SpanAttributes.OUTPUT_VALUE, "FAIL")
                 span.set_status(Status(StatusCode.ERROR))
                 return "Potential jailbreak attempt detected"
-            if toxic_check == False:
+            if not toxic_check:
                 logger.warning(
                     "Interaction validation failed: Toxic language is not allowed"
                 )
@@ -206,6 +208,7 @@ def handle_session(query_engine: any, classifier: QueryClassifier, tracer: any) 
 def init_openai_client():
     """Initialize the OpenAI client with API key."""
     from openai import OpenAI
+
     from src.llamaindex_app.config import Settings
 
     settings = Settings()
