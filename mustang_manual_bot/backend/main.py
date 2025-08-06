@@ -128,7 +128,6 @@ def initialize_app(env_overrides: Optional[Dict[str, str]] = None):
     #     return cached_components
 
     try:
-
         # Setup flexible instrumentation
         # Always shutdown any existing instrumentation to ensure clean state
         manager = get_instrumentation_manager()
