@@ -1,27 +1,27 @@
+import logging
+import os
+import uuid
+from contextlib import asynccontextmanager
+from typing import Dict, List, Optional
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List, Dict
-import uuid
-import logging
-import os
-from contextlib import asynccontextmanager
 
 # Set Hugging Face cache directory
 os.environ["TRANSFORMERS_CACHE"] = "/app/models"
 os.environ["HF_HOME"] = "/app/models"
 
-from src.llamaindex_app.main import init_openai_client, process_interaction
-from src.llamaindex_app.flexible_instrumentation import (
-    get_instrumentation_manager,
-    TracerConfig,
-    setup_flexible_instrumentation,
-)
-from src.llamaindex_app.classifier import QueryClassifier
-from src.llamaindex_app.index_manager import IndexManager
-from src.llamaindex_app.config import Settings
 from backend.utils.env_manager import EnvironmentManager, validate_env_overrides
 from backend.utils.session_manager import SessionManager
+from src.llamaindex_app.classifier import QueryClassifier
+from src.llamaindex_app.flexible_instrumentation import (
+    TracerConfig,
+    get_instrumentation_manager,
+    setup_flexible_instrumentation,
+)
+from src.llamaindex_app.index_manager import IndexManager
+from src.llamaindex_app.main import init_openai_client, process_interaction
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -127,8 +127,6 @@ def initialize_app(env_overrides: Optional[Dict[str, str]] = None):
     #     return cached_components
 
     try:
-        # Load settings
-        settings = Settings()
 
         # Setup flexible instrumentation
         # Always shutdown any existing instrumentation to ensure clean state
