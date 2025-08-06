@@ -38,24 +38,25 @@ class IndexManager:
         # Set the embedding model explicitly
         LlamaSettings.embed_model = HuggingFaceEmbedding(
             model_name="BAAI/bge-small-en-v1.5",
-            embed_batch_size=32  # Add batch size for better performance
+            embed_batch_size=32,  # Add batch size for better performance
         )
-        
+
         # Set chunking parameters
         LlamaSettings.chunk_size = self.settings.CHUNK_SIZE
         LlamaSettings.chunk_overlap = self.settings.CHUNK_OVERLAP
-        
+
         # Configure Bedrock for LlamaIndex if needed
         if self.bedrock_client:
             try:
                 # Configure LlamaIndex to use Bedrock
                 LlamaSettings.llm = Bedrock(
-                    model=self.settings.MODEL,
-                    client=self.bedrock_client
+                    model=self.settings.MODEL, client=self.bedrock_client
                 )
                 logger.info("Bedrock LLM configured for LlamaIndex")
             except ImportError:
-                logger.warning("Could not import Bedrock from llama_index. Make sure llama-index-llms-bedrock is installed.")
+                logger.warning(
+                    "Could not import Bedrock from llama_index. Make sure llama-index-llms-bedrock is installed."
+                )
                 logger.warning("To install: pip install llama-index-llms-bedrock")
 
     @retry(

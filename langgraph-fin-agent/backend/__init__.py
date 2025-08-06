@@ -1,1 +1,1 @@
-# Backend package for LangGraph Finance Agent 
+# Backend package for LangGraph Finance Agent

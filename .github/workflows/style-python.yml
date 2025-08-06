@@ -1,0 +1,77 @@
+name: "Python Style"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    paths:
+      - "**.py"
+      - "**.ipynb"
+      - ".github/workflows/style-python.yml"
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+concurrency:
+  group: test-python-${{ github.head_ref }}
+  cancel-in-progress: true
+
+env:
+  python-version: 3.11
+  pip-version: 25.1.1
+  ruff-version: 0.12.2
+
+jobs:
+  lint:
+    name: "Check Linting"
+    runs-on: ubuntu-latest
+    outputs:
+      python-lint-status: ${{ steps.fix-python-script.outputs.python-lint-status }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Set up python ${{ env.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip==${{ env.pip-version }}
+          pip install ruff==${{ env.ruff-version }}
+      - name: Run fix style script & check diff
+        id: fix-python-script
+        run: |
+          bash scripts/fix_python_style.sh
+          if $(git diff --exit-code --quiet); then
+            echo "python-lint-status=success" >> "$GITHUB_OUTPUT"
+          else
+            exit 1
+          fi
+
+      - name: Provide feedback
+        uses: marocchino/sticky-pull-request-comment@v2
+        # When the previous step fails, the workflow would stop. By adding this
+        # condition you can continue the execution with the populated error message.
+        if: always() && (steps.fix-python-script.outputs.python-lint-status != 'success')
+        with:
+          header: pr-title-lint-error
+          message: |
+            Hey there! 👋🏼
+
+            We require python linting and formatting using ruff.
+
+            It seems your code is not correctly linted. Please run:
+
+            ```bash
+            ./scripts/fix_python_style.sh
+            ```
+
+            from the root of the repo.
+
+      # Delete a previous comment when the issue has been resolved
+      - name: Delete feedback
+        if: ${{ steps.fix-python-script.outputs.python-lint-status == 'success' }}
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: pr-title-lint-error
+          delete: true

@@ -4,7 +4,12 @@ import logging
 from llama_index.core import Response
 from pydantic import BaseModel, Field
 from src.llamaindex_app.tools import RiskScoringTools
-from src.llamaindex_app.config import Settings, CLASSIFICATION_PROMPT, RAG_PROMPT, TEMPLATE_VERSION
+from src.llamaindex_app.config import (
+    Settings,
+    CLASSIFICATION_PROMPT,
+    RAG_PROMPT,
+    TEMPLATE_VERSION,
+)
 from opentelemetry.trace import Status, StatusCode
 from opentelemetry import trace
 from openinference.semconv.trace import SpanAttributes
@@ -61,10 +66,10 @@ class QueryClassifier:
                 model=self.settings.OPENAI_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": query}
+                    {"role": "user", "content": query},
                 ],
                 temperature=0,
-                max_tokens=4096
+                max_tokens=4096,
             )
 
             return response.choices[0].message.content
@@ -121,7 +126,9 @@ class QueryClassifier:
 
                     return Response(response=response_text, source_nodes=nodes)
                 except Exception as e:
-                    logger.error(f"Error in Arize documentation response generation: {str(e)}")
+                    logger.error(
+                        f"Error in Arize documentation response generation: {str(e)}"
+                    )
                     raise
             else:
                 return Response(

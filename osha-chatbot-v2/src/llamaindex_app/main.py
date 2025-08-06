@@ -9,11 +9,8 @@ from typing import Tuple, Optional
 from opentelemetry.trace.status import Status, StatusCode
 from openinference.semconv.trace import SpanAttributes
 from llama_index.core import Response
-#guards
-from .config import (
-    validate_query_for_jailbreak, 
-    validate_query_for_toxic_language
-)
+
+# guards
 from guardrails import Guard
 from guardrails.hub import DetectJailbreak, ToxicLanguage
 
@@ -24,10 +21,12 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+
 def validate_interaction(query: str) -> Optional[str]:
     """
     Validate the user query for potential issues before processing
-    
+
     :param query: Input query to validate
     :return: Error message if validation fails, None if query is valid
     """
@@ -35,23 +34,23 @@ def validate_interaction(query: str) -> Optional[str]:
         # Jailbreak detection
         jailbreak_guard = Guard().use(DetectJailbreak)
         jailbreak_guard.validate(query)
-        
+
         # Toxic language detection
         toxic_guard = Guard().use(
-            ToxicLanguage, 
+            ToxicLanguage,
             threshold=0.5,  # Adjust sensitivity as needed
-            validation_method="sentence", 
-            on_fail="exception"
+            validation_method="sentence",
+            on_fail="exception",
         )
         toxic_guard.validate(query)
-        
+
         # If both validations pass, return None (no error)
         return None
-    
+
     except Exception as e:
         # Log the specific validation error
         logger.warning(f"Interaction validation failed: {str(e)}")
-        
+
         # Return a generic error message
         if "jailbreak" in str(e).lower():
             return "Potential jailbreak attempt detected"
@@ -59,6 +58,7 @@ def validate_interaction(query: str) -> Optional[str]:
             return "Toxic language is not allowed"
         else:
             return "Input validation failed"
+
 
 def process_interaction(
     query_engine: any,
@@ -157,28 +157,28 @@ def init_azure_openai_client():
     from openai import AzureOpenAI
     from azure.identity import DefaultAzureCredential
     from .config import Settings
-    
+
     settings = Settings()
-    
+
     # Check for required settings
     if not settings.AZURE_OPENAI_ENDPOINT:
         raise ValueError("AZURE_OPENAI_ENDPOINT is not set in environment variables")
-        
+
     if not settings.AZURE_OPENAI_API_VERSION:
         raise ValueError("AZURE_OPENAI_API_VERSION is not set in environment variables")
-    
+
     if not settings.AZURE_OPENAI_DEPLOYMENT:
         raise ValueError("AZURE_OPENAI_DEPLOYMENT is not set in environment variables")
-    
+
     logger.info("Initializing Azure OpenAI client with DefaultAzureCredential")
-    
+
     # Try to use API key if available
     if settings.AZURE_OPENAI_API_KEY:
         logger.info("Using API key authentication for Azure OpenAI")
         client = AzureOpenAI(
             api_key=settings.AZURE_OPENAI_API_KEY,
             azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
-            api_version=settings.AZURE_OPENAI_API_VERSION
+            api_version=settings.AZURE_OPENAI_API_VERSION,
         )
     else:
         # Use DefaultAzureCredential
@@ -186,17 +186,21 @@ def init_azure_openai_client():
         try:
             default_credential = DefaultAzureCredential()
             client = AzureOpenAI(
-                azure_ad_token_provider=default_credential.get_token("https://cognitiveservices.azure.com/.default").token,
+                azure_ad_token_provider=default_credential.get_token(
+                    "https://cognitiveservices.azure.com/.default"
+                ).token,
                 azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
-                api_version=settings.AZURE_OPENAI_API_VERSION
+                api_version=settings.AZURE_OPENAI_API_VERSION,
             )
         except Exception as e:
-            logger.error(f"Failed to authenticate with DefaultAzureCredential: {str(e)}")
+            logger.error(
+                f"Failed to authenticate with DefaultAzureCredential: {str(e)}"
+            )
             raise ValueError(
                 "Authentication failed. Either provide AZURE_OPENAI_API_KEY or ensure "
                 "your VPN/corporate network has proper Azure AD credentials configured."
             )
-    
+
     return client
 
 
@@ -209,10 +213,10 @@ def main():
         # Initialize Azure OpenAI client
         azure_client = init_azure_openai_client()
         logger.info("Azure OpenAI client initialized successfully")
-        
+
         # Settings for the application
         settings = Settings()
-        
+
         # Initialize index manager with Azure client
         index_manager = IndexManager(openai_client=azure_client)
         query_engine = index_manager.get_query_engine()
@@ -221,7 +225,7 @@ def main():
         classifier = QueryClassifier(
             query_engine=query_engine,
             openai_client=azure_client,
-            deployment=settings.AZURE_OPENAI_DEPLOYMENT
+            deployment=settings.AZURE_OPENAI_DEPLOYMENT,
         )
 
         print("\nWelcome to the Assurant 10-K Analysis & Risk Assessment Expert App!")

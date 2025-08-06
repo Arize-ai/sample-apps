@@ -179,9 +179,7 @@ def output_summarizing_node(state):
     }
 
 
-financial_data_agent = create_react_agent(
-    LLM, tools=FINANCIAL_DATA_TOOLS
-)
+financial_data_agent = create_react_agent(LLM, tools=FINANCIAL_DATA_TOOLS)
 
 financial_data_node = functools.partial(
     agent_node,  # Reusable function to convert an agent into a node
@@ -189,13 +187,12 @@ financial_data_node = functools.partial(
     name="Financial_Data_Agent",
 )
 
-web_research_agent = create_react_agent(
-    LLM, tools=WEB_RESEARCH_TOOLS
-)
+web_research_agent = create_react_agent(LLM, tools=WEB_RESEARCH_TOOLS)
 
 web_research_node = functools.partial(
     agent_node, agent=web_research_agent, name="Web_Research_Agent"
 )
+
 
 def build_workflow() -> StateGraph:
     """Construct the state graph for the workflow."""
