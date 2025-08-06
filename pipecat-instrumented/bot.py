@@ -35,7 +35,6 @@ from tracing_setup import (
     add_session_metadata,
     create_child_span_with_context,
     force_flush_traces,
-    get_tracer,
     setup_arize_tracing,
     shutdown_tracing,
     trace_audio_processing,
@@ -149,7 +148,6 @@ async def on_participant_left(transport, participant, reason):
 async def main(transport):
     """Main pipeline execution with comprehensive tracing."""
     # Explicitly get current span (should be transport_initialization) and use as parent
-    tracer = get_tracer()
     current_span = trace_api.get_current_span()
 
     if current_span and current_span.is_recording():
