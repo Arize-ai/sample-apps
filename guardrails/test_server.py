@@ -3,8 +3,9 @@
 Test script for the GuardRails server
 """
 
-import requests
 import sys
+
+import requests
 
 # Server configuration
 BASE_URL = "http://127.0.0.1:8000"
@@ -103,8 +104,8 @@ def test_guard_endpoint(guard_name, test_message, expected_validation=None):
             try:
                 error_data = response.json()
                 print(f"  Error: {error_data.get('detail', 'Unknown error')}")
-            except:
-                print(f"  Error: {response.text}")
+            except Exception as e:
+                print(f"  Error: {e}")
             return False
 
     except Exception as e:
