@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Debug script to identify the ARIZE error"""
 
-import sys
 import logging
+import sys
 import traceback
 from pathlib import Path
 
@@ -24,15 +24,12 @@ def test_query_processing():
     """Test the query processing to identify where the ARIZE error occurs"""
     try:
         # Import after setting up the path
-        from src.llamaindex_app.main import init_openai_client
-        from src.llamaindex_app.index_manager import IndexManager
         from src.llamaindex_app.classifier import QueryClassifier
+        from src.llamaindex_app.index_manager import IndexManager
         from src.llamaindex_app.instrumentation import setup_instrumentation
-        from src.llamaindex_app.config import Settings
+        from src.llamaindex_app.main import init_openai_client
 
         logger.info("Starting debug test...")
-
-        settings = Settings()
 
         # Initialize instrumentation
         tracer_provider = setup_instrumentation()

@@ -9,7 +9,6 @@ from opentelemetry.trace.status import Status, StatusCode
 
 from src.llamaindex_app.classifier import QueryCategory, QueryClassifier
 from src.llamaindex_app.config import (
-    Settings,
     validate_query_for_jailbreak,
     validate_query_for_toxic_language,
 )
@@ -248,9 +247,6 @@ def main():
         # Initialize OpenAI client
         openai_client = init_openai_client()
         logger.info("OpenAI client initialized successfully")
-
-        # Settings for the application
-        settings = Settings()
 
         # Initialize index manager with OpenAI client
         index_manager = IndexManager(openai_client=openai_client)
