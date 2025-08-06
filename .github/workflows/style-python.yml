@@ -41,7 +41,7 @@ jobs:
       - name: Run fix style script & check diff
         id: fix-python-script
         run: |
-          ./scripts/fix_python_style.sh
+          bash scripts/fix_python_style.sh
           if $(git diff --exit-code --quiet); then
             echo "python-lint-status=success" >> "$GITHUB_OUTPUT"
           else
