@@ -172,7 +172,6 @@ async def main(transport):
         # Create aiohttp session for services that need it
         async with aiohttp.ClientSession() as aiohttp_session:
             # Set the pipeline span as the active context for child spans
-            tracer = get_tracer()
             pipeline_context = trace_api.set_span_in_context(pipeline_span)
             context_token = context_api.attach(pipeline_context)
 
