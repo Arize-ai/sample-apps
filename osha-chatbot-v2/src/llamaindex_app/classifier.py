@@ -63,10 +63,10 @@ class QueryClassifier:
                 model=self.deployment,  # Use deployment name as the model
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": query}
+                    {"role": "user", "content": query},
                 ],
                 temperature=0,
-                max_tokens=4096
+                max_tokens=4096,
             )
 
             return response.choices[0].message.content
@@ -119,11 +119,15 @@ class QueryClassifier:
                         version=TEMPLATE_VERSION,
                     ):
                         formatted_prompt = RAG_PROMPT.format(**template_vars)
-                        response_text = self._call_azure_openai(formatted_prompt, query, span)
+                        response_text = self._call_azure_openai(
+                            formatted_prompt, query, span
+                        )
 
                     return Response(response=response_text, source_nodes=nodes)
                 except Exception as e:
-                    logger.error(f"Error in Assurant 10-K response generation: {str(e)}")
+                    logger.error(
+                        f"Error in Assurant 10-K response generation: {str(e)}"
+                    )
                     raise
             elif category == QueryCategory.RISK_ASSESSMENT:
                 tool = next(

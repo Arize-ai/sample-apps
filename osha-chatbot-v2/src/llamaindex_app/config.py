@@ -1,7 +1,11 @@
-from pydantic_settings import BaseSettings
-from pathlib import Path
 from enum import Enum
+from pathlib import Path
 from typing import Optional
+
+from pydantic_settings import BaseSettings
+
+from guardrails import Guard
+from guardrails.hub import DetectJailbreak, ToxicLanguage
 
 
 class AzureOpenAIModels(str, Enum):
@@ -73,13 +77,11 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
         extra = "allow"
 
-from guardrails.hub import DetectJailbreak, ToxicLanguage
-from guardrails import Guard
 
 def validate_query_for_jailbreak(query: str) -> bool:
     """
     Validate input for potential jailbreak attempts
-    
+
     :param query: Input query to validate
     :return: True if safe, False if jailbreak detected
     """
@@ -90,19 +92,20 @@ def validate_query_for_jailbreak(query: str) -> bool:
     except Exception:
         return False
 
+
 def validate_query_for_toxic_language(query: str) -> bool:
     """
     Validate input for toxic language
-    
+
     :param query: Input query to validate
     :return: True if safe, False if toxic language detected
     """
     try:
         guard = Guard().use(
-            ToxicLanguage, 
+            ToxicLanguage,
             threshold=0.5,  # Adjust sensitivity as needed
-            validation_method="sentence", 
-            on_fail="exception"
+            validation_method="sentence",
+            on_fail="exception",
         )
         guard.validate(query)
         return True

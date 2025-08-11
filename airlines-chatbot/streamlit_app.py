@@ -12,26 +12,26 @@ os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 st.set_page_config(
     page_title="Assurant 10-K Analysis & Risk Assessment App",
     page_icon="📊",
-    layout="wide"
+    layout="wide",
 )
 
 # Run setup script if environment variable is set
-if os.environ.get('STREAMLIT_RUN_SETUP', 'false').lower() == 'true':
+if os.environ.get("STREAMLIT_RUN_SETUP", "false").lower() == "true":
     try:
         st.write("Setting up environment...")
-        subprocess.call(['bash', 'setup.sh'])
+        subprocess.call(["bash", "setup.sh"])
         st.write("Setup completed!")
     except Exception as e:
         st.error(f"Setup failed: {e}")
 
 # Suppress PyTorch warnings that might appear in the console
-os.environ['PYTHONWARNINGS'] = 'ignore::RuntimeWarning'
+os.environ["PYTHONWARNINGS"] = "ignore::RuntimeWarning"
 
 # Configure logging before imports
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler()]
+    handlers=[logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
@@ -55,13 +55,19 @@ else:
 # Import the necessary modules using direct imports
 try:
     # Use absolute imports based on the project structure
-    from src.llamaindex_app.main import init_openai_client, setup_instrumentation, process_interaction
+    from src.llamaindex_app.main import (
+        init_openai_client,
+        setup_instrumentation,
+        process_interaction,
+    )
     from src.llamaindex_app.classifier import QueryClassifier
     from src.llamaindex_app.index_manager import IndexManager
     from src.llamaindex_app.config import Settings
+
     logger.info("Successfully imported all required modules")
 except ImportError as e:
     logger.error(f"Import error: {e}")
+
 
 def init_app():
     """Initialize everything just once using st.session_state."""
@@ -70,15 +76,17 @@ def init_app():
         try:
             st.session_state["initialized"] = True
             logger.info("Starting app initialization")
-            
+
             # Load settings
             settings = Settings()
             st.session_state["settings"] = settings
-            
+
             # (1) instrumentation (if needed)
             with st.spinner("Setting up instrumentation..."):
                 tracer_provider = setup_instrumentation()
-                st.session_state["tracer"] = tracer_provider.get_tracer("llamaindex_app")
+                st.session_state["tracer"] = tracer_provider.get_tracer(
+                    "llamaindex_app"
+                )
                 logger.info("Instrumentation setup complete")
 
             # (2) OpenAI client
@@ -97,8 +105,7 @@ def init_app():
             # (4) classifier
             with st.spinner("Initializing query classifier..."):
                 classifier = QueryClassifier(
-                    query_engine=query_engine,
-                    openai_client=openai_client
+                    query_engine=query_engine, openai_client=openai_client
                 )
                 st.session_state["classifier"] = classifier
                 logger.info("Query classifier initialized")
@@ -106,34 +113,35 @@ def init_app():
             st.session_state["chat_history"] = []  # store chat Q&A pairs
             logger.info("App initialization complete")
             st.success("App initialized successfully!")
-            
+
         except Exception as e:
             st.error(f"Failed to initialize app: {str(e)}")
             logger.error(f"Initialization error: {str(e)}", exc_info=True)
             st.session_state["initialization_error"] = str(e)
             return False
-        
+
         return True
-    
+
     return "initialized" in st.session_state and st.session_state["initialized"]
+
 
 def main():
     """Main Streamlit app function."""
     st.title("Assurant 10-K Analysis & Risk Assessment App")
 
-    #Adding session state to the app
+    # Adding session state to the app
     if "query_engine" not in st.session_state:
         st.session_state["query_engine"] = None
 
     if "classifier" not in st.session_state:
         st.session_state["classifier"] = None
-    
+
     if "tracer" not in st.session_state:
         st.session_state["tracer"] = None
-    
+
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
-    
+
     # Sidebar with app info
     with st.sidebar:
         st.subheader("About this app")
@@ -146,36 +154,47 @@ def main():
         - Business operations
         - Market trends
         """)
-        
+
         # Debug section in sidebar
         if st.checkbox("Show debug info"):
             st.subheader("Debug Information")
             st.write("Python Path:")
             for path in sys.path:
                 st.write(f"- {path}")
-            
+
             # Display environment variables (without sensitive values)
             st.write("Environment Variables:")
             safe_vars = {
-                k: (v if not any(secret in k.lower() for secret in ["key", "secret", "password", "token"]) else "****") 
+                k: (
+                    v
+                    if not any(
+                        secret in k.lower()
+                        for secret in ["key", "secret", "password", "token"]
+                    )
+                    else "****"
+                )
                 for k, v in os.environ.items()
                 if k.startswith(("OPENAI_", "LLAMAINDEX_"))
             }
             for k, v in safe_vars.items():
                 st.write(f"- {k}: {v}")
-            
+
             # Also display settings from the Settings class
             if "settings" in st.session_state:
                 settings = st.session_state["settings"]
                 st.write("App Settings:")
                 st.write(f"- OpenAI Model: {settings.OPENAI_MODEL}")
-                st.write(f"- OpenAI Base URL: {settings.OPENAI_BASE_URL if settings.OPENAI_BASE_URL else 'Default API URL'}")
+                st.write(
+                    f"- OpenAI Base URL: {settings.OPENAI_BASE_URL if settings.OPENAI_BASE_URL else 'Default API URL'}"
+                )
                 if settings.OPENAI_ORG_ID:
                     st.write(f"- OpenAI Organization: {settings.OPENAI_ORG_ID}")
 
     # Check if the required modules are properly imported
-    if 'src.llamaindex_app.classifier' not in sys.modules:
-        st.error("Failed to import required modules. Please check your project structure and try again.")
+    if "src.llamaindex_app.classifier" not in sys.modules:
+        st.error(
+            "Failed to import required modules. Please check your project structure and try again."
+        )
         st.info("""
         Troubleshooting steps:
         1. Ensure you have proper __init__.py files in src/ and src/llamaindex_app/ directories
@@ -187,15 +206,19 @@ def main():
 
     # Initialize the app
     initialization_status = init_app()
-    
+
     if initialization_status is False:
-        st.error(f"Initialization failed: {st.session_state.get('initialization_error', 'Unknown error')}")
+        st.error(
+            f"Initialization failed: {st.session_state.get('initialization_error', 'Unknown error')}"
+        )
         st.warning("Please check your environment variables and connection settings.")
         return
-    
+
     # Query section
     st.subheader("Ask a question about Assurant's 10-K")
-    user_question = st.text_input("Your question:", placeholder="e.g., How did Assurant perform last quarter?")
+    user_question = st.text_input(
+        "Your question:", placeholder="e.g., How did Assurant perform last quarter?"
+    )
     submit = st.button("Submit Question")
 
     if submit and user_question.strip():
@@ -210,24 +233,24 @@ def main():
             try:
                 # Log the question being processed
                 logger.info(f"Processing query: {user_question}")
-                
+
                 response, error = process_interaction(
-                    query_engine,
-                    classifier,
-                    tracer,
-                    user_question,
-                    session_id
+                    query_engine, classifier, tracer, user_question, session_id
                 )
 
                 # Store in st.session_state so we can display entire conversation
                 if error:
                     st.session_state["chat_history"].append(("user", user_question))
-                    st.session_state["chat_history"].append(("assistant", f"Error: {error}"))
+                    st.session_state["chat_history"].append(
+                        ("assistant", f"Error: {error}")
+                    )
                     st.error(f"Error: {error}")
                     logger.error(f"Query processing error: {error}")
                 else:
                     st.session_state["chat_history"].append(("user", user_question))
-                    st.session_state["chat_history"].append(("assistant", response.response))
+                    st.session_state["chat_history"].append(
+                        ("assistant", response.response)
+                    )
                     logger.info("Query processed successfully")
 
                     # If there are any sources
@@ -236,18 +259,22 @@ def main():
                             f"- {node.metadata.get('file_name', 'Unknown source')}"
                             for node in response.source_nodes
                         )
-                        st.session_state["chat_history"].append(("assistant_sources", source_text))
+                        st.session_state["chat_history"].append(
+                            ("assistant_sources", source_text)
+                        )
                         logger.info(f"Found {len(response.source_nodes)} source nodes")
             except Exception as e:
                 st.error(f"Error processing your question: {str(e)}")
                 logger.error(f"Process interaction error: {str(e)}", exc_info=True)
                 st.session_state["chat_history"].append(("user", user_question))
-                st.session_state["chat_history"].append(("assistant", f"Error processing your question: {str(e)}"))
+                st.session_state["chat_history"].append(
+                    ("assistant", f"Error processing your question: {str(e)}")
+                )
 
     # Display the chat history
     st.subheader("Conversation")
     history_container = st.container()
-    
+
     with history_container:
         for idx, (role, content) in enumerate(st.session_state.get("chat_history", [])):
             if role == "user":
@@ -257,10 +284,14 @@ def main():
             elif role == "assistant_sources":
                 with st.expander("View Sources"):
                     st.markdown(content)
-            
+
             # Add a separator between conversations
-            if idx < len(st.session_state.get("chat_history", [])) - 1 and role == "assistant":
+            if (
+                idx < len(st.session_state.get("chat_history", [])) - 1
+                and role == "assistant"
+            ):
                 st.markdown("---")
+
 
 if __name__ == "__main__":
     try:
