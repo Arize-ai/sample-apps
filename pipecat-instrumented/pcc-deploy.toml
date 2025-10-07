@@ -1,0 +1,6 @@
+agent_name = "basic-voice-bot"
+image = "your-username/basic-voice-bot:0.1"
+secret_set = "basic-voice-bot-secrets"
+
+[scaling]
+	min_agents = 0

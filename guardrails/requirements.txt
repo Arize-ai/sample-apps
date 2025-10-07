@@ -1,0 +1,12 @@
+guardrails-ai
+nltk
+certifi
+uvicorn[standard]
+fastapi
+pydantic
+openai
+python-multipart
+requests
+setuptools
+wheel
+packaging

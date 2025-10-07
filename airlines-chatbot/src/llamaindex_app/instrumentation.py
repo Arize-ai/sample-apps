@@ -1,5 +1,3 @@
-
-
 # # Use this to send to Arize
 from opentelemetry.trace import set_tracer_provider
 from opentelemetry.sdk.resources import Resource
@@ -13,7 +11,6 @@ from openinference.instrumentation.openai import OpenAIInstrumentor
 from dotenv import load_dotenv
 import logging
 import os
-import streamlit as st
 
 logger = logging.getLogger(__name__)
 

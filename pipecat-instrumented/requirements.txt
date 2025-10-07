@@ -1,0 +1,15 @@
+pipecatcloud
+# Override problematic dependencies for Python 3.11 compatibility
+numba>=0.57.0
+resampy>=0.4.3
+pipecat-ai[elevenlabs,daily,openai,silero,deepgram]>=0.0.76
+python-dotenv
+aiohttp
+
+# Arize AX OpenTelemetry tracing dependencies
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-grpc
+openinference-semantic-conventions
+openinference-instrumentation
+openinference-instrumentation-openai
+arize-otel

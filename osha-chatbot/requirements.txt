@@ -1,15 +1,43 @@
-llama-index-core=0.12.2
-llama-index-embeddings-huggingface = 0.4.0
-llama-index-readers-file = 0.4.0
-python-dotenv>=1.0.0
-pydantic-settings>=2.1.0
-arize-phoenix==5.12.0
-arize-phoenix-otel = 0.6.1
-llama_index.llms.bedrock = 0.3.1
-openinference-instrumentation-bedrock = 0.1.12
-openinference.instrumentation.llama_index = 3.0.4
-openinference-instrumentation = 0.1.19
-boto3 
-botocore
-arize = 7.29.2
-editdistance #this is for experiments
+# Core LlamaIndex dependencies
+llama-index==0.12.49
+llama-index-core==0.12.49
+llama-index-llms-openai==0.4.7
+llama-index-embeddings-openai==0.3.1
+llama-index-embeddings-huggingface==0.5.5
+llama-index-readers-file==0.4.11
+openai==1.97.0
+
+# OpenAI
+openai>=1.97.0
+
+# Environment and configuration
+python-dotenv==1.1.1
+pydantic==2.11.7
+pydantic-settings==2.10.1
+
+# Error handling and retries
+tenacity==9.1.2
+
+# Instrumentation and monitoring
+arize-phoenix==11.8.0
+arize-phoenix-otel==0.12.1
+openinference-instrumentation-llama-index==4.3.1
+openinference-instrumentation-openai==0.1.30
+opentelemetry-sdk==1.35.0
+opentelemetry-exporter-otlp-proto-http==1.35.0
+opentelemetry-exporter-otlp-proto-grpc==1.35.0
+
+# Web API (if needed)
+fastapi==0.116.1
+uvicorn==0.35.0
+python-multipart==0.0.20
+
+# Data processing
+pandas==2.2.3
+numpy==2.3.1
+
+# Document processing
+pypdf==5.8.0
+
+# Streamlit
+watchdog>=6.0.0

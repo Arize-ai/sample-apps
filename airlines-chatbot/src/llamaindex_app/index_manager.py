@@ -3,8 +3,6 @@ import logging
 from llama_index.core import (
     SimpleDirectoryReader,
     VectorStoreIndex,
-    StorageContext,
-    load_index_from_storage,
     Settings as LlamaSettings,
 )
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
@@ -37,32 +35,33 @@ class IndexManager:
         """Configure LlamaIndex settings for OpenAI."""
         # Set the embedding model
         LlamaSettings.embed_model = HuggingFaceEmbedding(
-            model_name="BAAI/bge-small-en-v1.5",
-            device="cpu"
+            model_name="BAAI/bge-small-en-v1.5", device="cpu"
         )
-        
+
         # Set chunking parameters
         LlamaSettings.chunk_size = self.settings.CHUNK_SIZE
         LlamaSettings.chunk_overlap = self.settings.CHUNK_OVERLAP
-        
+
         # Configure OpenAI for LlamaIndex if needed
         if self.openai_client:
             try:
                 # Configure LlamaIndex to use OpenAI
                 LlamaSettings.llm = LlamaOpenAI(
                     model=self.settings.OPENAI_MODEL,
-                    api_key=self.settings.OPENAI_API_KEY
+                    api_key=self.settings.OPENAI_API_KEY,
                 )
                 logger.info("OpenAI LLM configured for LlamaIndex")
             except ImportError:
-                logger.warning("Could not import OpenAI from llama_index. Make sure llama-index-llms-openai is installed.")
+                logger.warning(
+                    "Could not import OpenAI from llama_index. Make sure llama-index-llms-openai is installed."
+                )
                 logger.warning("To install: pip install llama-index-llms-openai")
 
     @retry(
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
     )
     def load_or_create_index(self):
-    # Always recreate the index, don't check if it exists
+        # Always recreate the index, don't check if it exists
         if not self.storage_path.exists():
             self.storage_path.mkdir(parents=True, exist_ok=True)
         elif any(self.storage_path.iterdir()):
@@ -70,20 +69,22 @@ class IndexManager:
             logger.info("Removing existing index...")
             for file in self.storage_path.iterdir():
                 file.unlink()
-        
+
         try:
             logger.info("Creating new index from specific PDF files...")
-            
+
             # Determine the correct data path
             # This path should point to the root 'data' folder, not 'src/data'
-            project_root = Path(__file__).parent.parent.parent  # Go up from src/llamaindex_app to the project root
+            project_root = Path(
+                __file__
+            ).parent.parent.parent  # Go up from src/llamaindex_app to the project root
             data_path = project_root / "data"
-            
+
             logger.info(f"Using data path: {data_path}")
-            
+
             # Specify exact filenames
             filenames = ["AA - Sustainability 2023.pdf"]
-            
+
             # Check if files exist
             pdf_files = []
             for filename in filenames:
@@ -96,23 +97,25 @@ class IndexManager:
                     logger.error(f"File not found: {file_path}")
                     # List files in the data directory to help debug
                     if data_path.exists():
-                        logger.info(f"Files in data directory: {[f.name for f in data_path.iterdir() if f.is_file()]}")
+                        logger.info(
+                            f"Files in data directory: {[f.name for f in data_path.iterdir() if f.is_file()]}"
+                        )
                     else:
                         logger.error(f"Data directory does not exist: {data_path}")
                     raise FileNotFoundError(f"File not found: {file_path}")
-            
+
             # Only proceed if we found both files
             if len(pdf_files) == 1:
-                documents = SimpleDirectoryReader(
-                    input_files=pdf_files
-                ).load_data()
-                
+                documents = SimpleDirectoryReader(input_files=pdf_files).load_data()
+
                 logger.info(f"Loaded {len(documents)} documents, creating index...")
-                index = VectorStoreIndex.from_documents(documents, settings=LlamaSettings)
-                
+                index = VectorStoreIndex.from_documents(
+                    documents, settings=LlamaSettings
+                )
+
                 logger.info("Persisting index to storage...")
                 index.storage_context.persist(persist_dir=str(self.storage_path))
-                
+
                 return index
             else:
                 raise ValueError(f"Expected 1 PDF file, but found {len(pdf_files)}")
