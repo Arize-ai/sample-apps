@@ -1,0 +1,61 @@
+plugins {
+	id 'java'
+	id 'application'
+	id 'org.springframework.boot' version '3.5.3'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+ext {
+	set('springAiVersion', "1.0.0")
+}
+
+dependencies {
+	implementation 'com.arize:openinference-instrumentation-springAI:0.1.7'
+	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+	implementation 'io.micrometer:micrometer-tracing-bridge-brave:1.5.1'
+
+	// Jackson for JSON serialization
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+	// OpenTelemetry
+	implementation "io.opentelemetry:opentelemetry-sdk"
+	implementation "io.opentelemetry:opentelemetry-exporter-otlp"
+	implementation "io.opentelemetry:opentelemetry-exporter-logging"
+
+	// Environment configuration
+	implementation 'io.github.cdimascio:dotenv-java:3.0.0'
+
+	// Lombok for annotations (required by Spring AI instrumenter)
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
+	}
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+application {
+	mainClass = 'com.arize.openinference.examples.SpringAI'
+}

@@ -1,0 +1,65 @@
+# Gradle
+.gradle/
+build/
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+.gradletasknamecache
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+bin/
+out/
+.vscode/
+.factorypath
+
+# Compiled files
+*.class
+*.war
+*.ear
+
+# Logs
+*.log
+hs_err_pid*
+replay_pid*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Package files
+*.zip
+*.tar.gz
+*.rar
+
+# Maven (if used)
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# Environment files (sensitive data)
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Node.js (if any frontend tools are used)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log* 
